@@ -1,4 +1,4 @@
-# import requests
+import requests
 
 # # summoner_name = str(input("Enter a summoner name:\n"))
 
@@ -48,12 +48,20 @@
 # print(league_entries.json())
 
 
-def generate_numbers(n):
-    i = 1
-    while i <= n:
-        yield i
-        i += 1
+# def generate_numbers(n):
+#     i = 1
+#     while i <= n:
+#         yield i
+#         i += 1
 
-# Usar la función generadora en un bucle for
-for number in generate_numbers(5):
-    print(number)
+# # Usar la función generadora en un bucle for
+# for number in generate_numbers(5):
+#     print(number)
+
+response = requests.get("https://europe.api.riotgames.com/lol/match/v5/matches/EUW1_6336043681?api_key=RGAPI-3ba7525b-e0fc-4be2-86a4-58750debf565")
+response.raise_for_status()
+
+print(response.json()["info"])
+
+puuid = "1ryf4QieWJNGsHACMIkwCNt2s08RNjz3CMNuWgnyw7DHJb7hddaK3pJKMQbadlVxvzUSdDcpz9qOgg"
+match_id = "EUW1_6336043681"

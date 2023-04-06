@@ -117,3 +117,66 @@ class Summoner:
     
     
     # TODO Ya tengo el acceso a los match ID de toda una season. Ahora necesito sacar de ahi el champ juagado junto con todos los datos relacionados a este necesarios.
+    # TODO Datos necesarios por partida:
+    # TODO Champ name / Champ ID 
+    # TODO Victoria o derrota (Diccionario con nombre champ + victoria o derrota, KDA)
+    
+    
+    def games_data(self) -> dict:
+        all_games_data = {}
+        summoner_puuid = self.summoner_puuid()
+        
+        for match_id in self.all_ranked_matches_this_season():
+            endpoint = f"match/v5/matches/{match_id}"
+            match_request = self._get(general_region=True, endpoint=endpoint)
+            
+            # uno ambas listas con zip() para iterar sobre las dos a la vez
+            for participant_puuid, participant_data in zip(match_request["metadata"]["participants"], match_request["info"]["participants"]):
+                if participant_puuid == summoner_puuid:
+                    match_data = {
+                        "championName": participant_data["championName"],
+                        "kills": participant_data["kills"],
+                        "deaths": participant_data["deaths"],
+                        "assists": participant_data["assists"],
+                        "win": participant_data["win"],
+                    }
+
+                    all_games_data[match_id] = match_data
+                    # como solo busco los datos de uno, meto break en el primer if
+                    break
+        
+        return all_games_data
+
+
+    def champion_stats(self) -> dict[str, dict]:
+        
+        champion_stats = {}
+        games_data = self.games_data()
+        for game_data in games_data.values():
+            champion = game_data["championName"]
+            # compruebo si ya hay datos de ese champ
+            if champion not in champion_stats:
+                champion_stats[champion] = {
+                    "kills": 0,
+                    "deaths": 0,
+                    "assists": 0,
+                    "wins": 0,
+                    "games_played": 0
+                }
+            
+            champion_stats[champion]["kills"] += game_data["kills"]
+            champion_stats[champion]["deaths"] += game_data["deaths"]
+            champion_stats[champion]["assists"] += game_data["assists"]
+            champion_stats[champion]["wins"] += int(game_data["win"]) # al pasar bool a int, True = 1, False = 0.
+            champion_stats[champion]["games_played"] += 1
+
+        # calculo el winratio y KDA
+        for champion in champion_stats:
+            
+            champion_stats[champion]["win_ratio"] = int(round((champion_stats[champion]["wins"] / champion_stats[champion]["games_played"]) * 100))
+            
+            champion_stats[champion]["kda"] = round(((champion_stats[champion]["kills"] + champion_stats[champion]["assists"]) / champion_stats[champion]["deaths"]), 2)
+            
+        #TODO Calcular kills, deaths y assists por partida simplemente dividiendolo por las partidas jugadas. (Valorar si estos calculos renta hacerlos desde fuera)
+        
+        return champion_stats
