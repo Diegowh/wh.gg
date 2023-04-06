@@ -68,8 +68,8 @@ class Summoner:
     
     
     def champions_data(self) -> Dict[str, Any]:
-        endpoint = f"/lol/champion-mastery/v4/champion-masteries/by-summoner/{self.summoner_id()}"
-        return self._get(endpoint)
+        endpoint = f"champion-mastery/v4/champion-masteries/by-summoner/{self.summoner_id()}"
+        return self._get(endpoint) 
     
     
     def total_ranked_games_played(self) -> Tuple[int, int]:
