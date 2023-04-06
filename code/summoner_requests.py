@@ -1,8 +1,7 @@
-import requests
 from typing import Dict, Any, Tuple
 from time_stamp import SEASON_START_TIMESTAMP
 from api_utils import make_request
-import time
+
 
 
 class Summoner:
@@ -11,6 +10,7 @@ class Summoner:
         self.region = region
         self.summoner_name = summoner_name
         self.base_url = f"https://{region}.api.riotgames.com/lol/"
+        self._summoner_info = None #TODO VER COMO UTILIZAR UNA CACHE PARA ESTE DATO Y EVITAR MULTIPLES LLAMADAS.
     
         
     def _get(self, endpoint, general_region=False, **params) -> Dict[str, Any] :
@@ -25,8 +25,10 @@ class Summoner:
             raise Exception(f"Error fetching data from API: {e}")
         
     def summoner_info(self):
-        endpoint = f"summoner/v4/summoners/by-name/{self.summoner_name}"
-        return self._get(endpoint)
+        if not self._summoner_info:
+            endpoint = f"summoner/v4/summoners/by-name/{self.summoner_name}"
+            self._summoner_info = self._get(endpoint)
+        return self._summoner_info
     
     
     def summoner_id(self) -> str:
@@ -124,6 +126,7 @@ class Summoner:
             endpoint = f"match/v5/matches/{match_id}"
             match_request = self._get(general_region=True, endpoint=endpoint)
             
+            #TODO UTILIZAR UN DICCIONARIO DE CAMPEONES PARA EVITAR ITERAR SOBRE LA LISTA DE PARTICIPANTES. EL PUUID COMO KEY Y LOS DATOS DE LOS PARTICIPANTES COMO VALUES
             # uno ambas listas con zip() para iterar sobre las dos a la vez
             for participant_puuid, participant_data in zip(match_request["metadata"]["participants"], match_request["info"]["participants"]):
                 if participant_puuid == summoner_puuid:
