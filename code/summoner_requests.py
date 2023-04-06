@@ -113,13 +113,7 @@ class Summoner:
         # print(f"Execution time: {execution_time:.2f} seconds")
 
         return match_ids
-    
-    
-    
-    # TODO Ya tengo el acceso a los match ID de toda una season. Ahora necesito sacar de ahi el champ juagado junto con todos los datos relacionados a este necesarios.
-    # TODO Datos necesarios por partida:
-    # TODO Champ name / Champ ID 
-    # TODO Victoria o derrota (Diccionario con nombre champ + victoria o derrota, KDA)
+
     
     
     def games_data(self) -> dict:
@@ -170,13 +164,20 @@ class Summoner:
             champion_stats[champion]["wins"] += int(game_data["win"]) # al pasar bool a int, True = 1, False = 0.
             champion_stats[champion]["games_played"] += 1
 
-        # calculo el winratio y KDA
+        # calculo el winratio y KDA, etc.
         for champion in champion_stats:
             
             champion_stats[champion]["win_ratio"] = int(round((champion_stats[champion]["wins"] / champion_stats[champion]["games_played"]) * 100))
             
             champion_stats[champion]["kda"] = round(((champion_stats[champion]["kills"] + champion_stats[champion]["assists"]) / champion_stats[champion]["deaths"]), 2)
             
-        #TODO Calcular kills, deaths y assists por partida simplemente dividiendolo por las partidas jugadas. (Valorar si estos calculos renta hacerlos desde fuera)
+            champion_stats[champion]["avg_kills"] = round((champion_stats[champion]["kills"] / champion_stats[champion]["games_played"]), 1)
+            
+            champion_stats[champion]["avg_deaths"] = round((champion_stats[champion]["deaths"] / champion_stats[champion]["games_played"]), 1)
+            
+            champion_stats[champion]["avg_assists"] = round((champion_stats[champion]["assists"] / champion_stats[champion]["games_played"]), 1)
+    
         
         return champion_stats
+    
+    
