@@ -1,5 +1,6 @@
 import requests
 import time
+import asyncio, aiohttp
 
 BURST_LIMIT = 20
 BURST_TIME = 1

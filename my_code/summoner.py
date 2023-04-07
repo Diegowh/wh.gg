@@ -1,6 +1,7 @@
 from typing import Dict, Any, Tuple
-from time_stamp import SEASON_START_TIMESTAMP
-from api_utils import make_request
+from season_constants import SEASON_START_TIMESTAMP
+from request_utils import make_request
+
 
 
 
@@ -11,6 +12,8 @@ class Summoner:
         self.summoner_name = summoner_name
         self.base_url = f"https://{region}.api.riotgames.com/lol/"
         self._summoner_info = None #TODO VER COMO UTILIZAR UNA CACHE PARA ESTE DATO Y EVITAR MULTIPLES LLAMADAS.
+        
+        
     
         
     def _get(self, endpoint, general_region=False, **params) -> Dict[str, Any] :
@@ -145,6 +148,16 @@ class Summoner:
         return all_games_data
 
 
+    # funciones auxiliares para evitar codigo redundante
+    def calculate_kda(self, kills: int, deaths: int, assists: int) -> float:
+        kda = (kills + assists) / (deaths if deaths != 0 else 1)
+        return round(kda, 2)
+
+
+    def calculate_average(self, value: int, total_games: int) -> float:
+        return round(value / total_games, 1)
+    
+    
     def champion_stats(self) -> dict[str, dict]:
         
         champion_stats = {}
@@ -172,20 +185,21 @@ class Summoner:
             
             champion_stats[champion]["win_ratio"] = int(round((champion_stats[champion]["wins"] / champion_stats[champion]["games_played"]) * 100))
             
-            champion_stats[champion]["kda"] = round(((champion_stats[champion]["kills"] + champion_stats[champion]["assists"]) / champion_stats[champion]["deaths"]), 2)
+            champion_stats[champion]["kda"] = self.calculate_kda(champion_stats[champion]["kills"], champion_stats[champion]["deaths"], champion_stats[champion]["assists"])
             
-            champion_stats[champion]["avg_kills"] = round((champion_stats[champion]["kills"] / champion_stats[champion]["games_played"]), 1)
+            champion_stats[champion]["avg_kills"] = self.calculate_average(champion_stats[champion]["kills"], champion_stats[champion]["games_played"])
             
-            champion_stats[champion]["avg_deaths"] = round((champion_stats[champion]["deaths"] / champion_stats[champion]["games_played"]), 1)
+            champion_stats[champion]["avg_deaths"] = self.calculate_average(champion_stats[champion]["deaths"], champion_stats[champion]["games_played"])
             
-            champion_stats[champion]["avg_assists"] = round((champion_stats[champion]["assists"] / champion_stats[champion]["games_played"]), 1)
+            champion_stats[champion]["avg_assists"] = self.calculate_average(champion_stats[champion]["assists"], champion_stats[champion]["games_played"])
     
         
         return champion_stats
     
     
-    def last_10_games_data(self) -> list[dict]:
-        last_10_games = []
+    
+    def recent_10_games_data(self) -> list[dict]:
+        recent_10_games = []
         all_ranked_matches = self.all_ranked_matches_this_season()
         # TODO Optimizar esto para no tener que sacar todas las partidas de una season. Crear otro metodo que sea especifico para las ultimas 10 partidas.
         
@@ -216,7 +230,7 @@ class Summoner:
                         "win": participant_data["win"],
                         "champion_name": participant_data["championName"], #TODO A lo mejor puedo quitar esto ya que esta en la lista de arriba
                         "score": f'{participant_data["kills"]}/{participant_data["deaths"]}/{participant_data["assists"]}',
-                        "kda": round(((participant_data["kills"] + participant_data["assists"]) / (participant_data["deaths"] if participant_data["deaths"] != 0 else 1)), 2),
+                        "kda": self.calculate_kda(participant_data["kills"], participant_data["deaths"], participant_data["assists"]),
                         "cs": participant_data["totalMinionsKilled"] + participant_data["neutralMinionsKilled"],
                         "vision_score": participant_data["visionScore"],
                         "build": [
@@ -232,6 +246,9 @@ class Summoner:
             
             game_data["blue_team"] = blue_team
             game_data["red_team"] = red_team
-            last_10_games.append(game_data)
+            recent_10_games.append(game_data)
             
-        return last_10_games
+        return recent_10_games
+    
+    
+    
