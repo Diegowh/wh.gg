@@ -1,7 +1,7 @@
 from typing import Dict, Any, Tuple
 from season_constants import SEASON_START_TIMESTAMP
 from request_utils import make_request
-
+import cachetools
 
 
 
@@ -11,9 +11,11 @@ class Summoner:
         self.region = region
         self.summoner_name = summoner_name
         self.base_url = f"https://{region}.api.riotgames.com/lol/"
-        self._summoner_info = None #TODO VER COMO UTILIZAR UNA CACHE PARA ESTE DATO Y EVITAR MULTIPLES LLAMADAS.
-        
-        
+        self._summoner_info = None
+        #TODO Crear un sistema de almacenamiento en cache externo a Summoner que se almacene en una base de datos.
+        self.cache = cachetools.TTLCache(maxsize=100, ttl=30 * 60) # cache con un maximo de 100 elementos y un tiempo de vida de media hora (30 minutos * 60 segundos)
+        self.puuid = self.summoner_puuid()
+        self.id = self.summoner_id()
     
         
     def _get(self, endpoint, general_region=False, **params) -> Dict[str, Any] :
@@ -43,7 +45,7 @@ class Summoner:
     
     
     def league_entries(self) -> Dict[str, Any]:
-        endpoint = f"league/v4/entries/by-summoner/{self.summoner_id()}"
+        endpoint = f"league/v4/entries/by-summoner/{self.id}"
         return self._get(endpoint)
     
     
@@ -73,7 +75,7 @@ class Summoner:
     
     
     def champions_data(self) -> Dict[str, Any]:
-        endpoint = f"champion-mastery/v4/champion-masteries/by-summoner/{self.summoner_id()}"
+        endpoint = f"champion-mastery/v4/champion-masteries/by-summoner/{self.id}"
         return self._get(endpoint) 
     
     
@@ -102,7 +104,7 @@ class Summoner:
         
         for queue, games_played in queue_game_played_pairs:
             for start_index in range(0, games_played, 100):
-                endpoint = f"match/v5/matches/by-puuid/{self.summoner_puuid()}/ids"
+                endpoint = f"match/v5/matches/by-puuid/{self.puuid}/ids"
                 params = {
                     "startTime": int(SEASON_START_TIMESTAMP),
                     "queue": int(queue),
@@ -122,28 +124,51 @@ class Summoner:
     
     
     def games_data(self) -> dict:
+        """Comprueba si los datos para dadao summoner_puuid ya estan en cache antes de ejecutar la funcion _games_data(). Si existen los devuelve de la cache sin ejecutar la funcion siguiente. En el caso de que no existan, ejecuta _games_data
+        """
+        
+        cache_key = f"{self.puuid}_games_data"
+        
+        
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        all_games_data = self._games_data()
+        self.cache[cache_key] = all_games_data
+        print(f"Data stored in cache for key {cache_key}")
+        return all_games_data
+        
+        
+    def _games_data(self) -> dict:    
+        """Tomando los match ID de las rankeds jugadas en toda la temporada, devuelve los datos del usuario en estas partidas.
+
+        Returns:
+            dict: Champion name, kills, deaths, assists, win
+        """
+        
         all_games_data = {}
-        summoner_puuid = self.summoner_puuid()
         
         for match_id in self.all_ranked_matches_this_season():
             endpoint = f"match/v5/matches/{match_id}"
             match_request = self._get(general_region=True, endpoint=endpoint)
             
-            #TODO UTILIZAR UN DICCIONARIO DE CAMPEONES PARA EVITAR ITERAR SOBRE LA LISTA DE PARTICIPANTES. EL PUUID COMO KEY Y LOS DATOS DE LOS PARTICIPANTES COMO VALUES
-            # uno ambas listas con zip() para iterar sobre las dos a la vez
-            for participant_puuid, participant_data in zip(match_request["metadata"]["participants"], match_request["info"]["participants"]):
-                if participant_puuid == summoner_puuid:
-                    match_data = {
-                        "championName": participant_data["championName"],
-                        "kills": participant_data["kills"],
-                        "deaths": participant_data["deaths"],
-                        "assists": participant_data["assists"],
-                        "win": participant_data["win"],
-                    }
+            participants = {
+                participant["puuid"]: participant
+                for participant in match_request["info"]["participants"]
+            }
+            
+            if self.puuid in participants:
+                participant_data = participants[self.puuid]
+                match_data = {
+                    "championName": participant_data["championName"],
+                    "kills": participant_data["kills"],
+                    "deaths": participant_data["deaths"],
+                    "assists": participant_data["assists"],
+                    "win": participant_data["win"],
+                }
 
-                    all_games_data[match_id] = match_data
-                    # como solo busco los datos de uno, meto break en el primer if
-                    break
+                all_games_data[match_id] = match_data
+
         
         return all_games_data
 
@@ -207,7 +232,6 @@ class Summoner:
         for match_id in reversed(all_ranked_matches[-10:]):
             endpoint = f"match/v5/matches/{match_id}"
             match_request = self._get(general_region=True, endpoint=endpoint)
-            summoner_puuid = self.summoner_puuid()
             
             blue_team = []
             red_team = []
@@ -224,7 +248,7 @@ class Summoner:
                     red_team.append(participant_info)
                     
                 
-                if participant_data["puuid"] == summoner_puuid:
+                if participant_data["puuid"] == self.puuid:
                     game_data = {
                         "game_mode": match_request["info"]["gameMode"],
                         "win": participant_data["win"],
