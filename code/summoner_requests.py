@@ -184,3 +184,54 @@ class Summoner:
         return champion_stats
     
     
+    def last_10_games_data(self) -> list[dict]:
+        last_10_games = []
+        all_ranked_matches = self.all_ranked_matches_this_season()
+        # TODO Optimizar esto para no tener que sacar todas las partidas de una season. Crear otro metodo que sea especifico para las ultimas 10 partidas.
+        
+        # por cada id de partida hago solicitud para obtener sus datos
+        for match_id in reversed(all_ranked_matches[-10:]):
+            endpoint = f"match/v5/matches/{match_id}"
+            match_request = self._get(general_region=True, endpoint=endpoint)
+            summoner_puuid = self.summoner_puuid()
+            
+            blue_team = []
+            red_team = []
+            
+            # summoner name y champion de cada jugador (separado por blue o red team)
+            for participant_data in match_request["info"]["participants"]:
+                participant_info = {
+                    "summoner_name": participant_data["summonerName"],
+                    "champion_name": participant_data["championName"]
+                }
+                if participant_data["teamId"] == 100:
+                    blue_team.append(participant_info)
+                else:
+                    red_team.append(participant_info)
+                    
+                
+                if participant_data["puuid"] == summoner_puuid:
+                    game_data = {
+                        "game_mode": match_request["info"]["gameMode"],
+                        "win": participant_data["win"],
+                        "champion_name": participant_data["championName"], #TODO A lo mejor puedo quitar esto ya que esta en la lista de arriba
+                        "score": f'{participant_data["kills"]}/{participant_data["deaths"]}/{participant_data["assists"]}',
+                        "kda": round(((participant_data["kills"] + participant_data["assists"]) / (participant_data["deaths"] if participant_data["deaths"] != 0 else 1)), 2),
+                        "cs": participant_data["totalMinionsKilled"] + participant_data["neutralMinionsKilled"],
+                        "vision_score": participant_data["visionScore"],
+                        "build": [
+                            participant_data["item0"], 
+                            participant_data["item1"], 
+                            participant_data["item2"], 
+                            participant_data["item3"], 
+                            participant_data["item4"], 
+                            participant_data["item5"], 
+                            participant_data["item6"]
+                            ],
+                    }
+            
+            game_data["blue_team"] = blue_team
+            game_data["red_team"] = red_team
+            last_10_games.append(game_data)
+            
+        return last_10_games
