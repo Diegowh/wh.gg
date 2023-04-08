@@ -2,7 +2,7 @@ from summoner import Summoner
 import time
 
 
-api_key = "RGAPI-6a313384-90c6-4035-a902-1e430877bcdf"
+api_key = "RGAPI-885c2233-8ae3-4398-b5ec-3cb3698f68d2"
 region = "EUW1"
 summoner_name = "Flan de Nata"
 
@@ -28,11 +28,3 @@ def execution_time(func, *args, **kwargs):
 games_data = execution_time(lambda: summoner.games_data())
 print(f"execution time: {games_data}")
 
-
-print("DATOS DE CACHE ################")
-cache_key = f"{summoner.puuid}_games_data"
-print(summoner.cache.get(cache_key))
-
-
-games_data_2 = execution_time(lambda: summoner.games_data())
-print(f"execution time 2: {games_data_2}")

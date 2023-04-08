@@ -2,7 +2,7 @@ from typing import Dict, Any, Tuple
 from season_constants import SEASON_START_TIMESTAMP
 from request_utils import make_request
 import cachetools
-
+import sqlite3
 
 
 class Summoner:
@@ -11,12 +11,40 @@ class Summoner:
         self.region = region
         self.summoner_name = summoner_name
         self.base_url = f"https://{region}.api.riotgames.com/lol/"
+        
         self._summoner_info = None
-        #TODO Crear un sistema de almacenamiento en cache externo a Summoner que se almacene en una base de datos.
         self.cache = cachetools.TTLCache(maxsize=100, ttl=30 * 60) # cache con un maximo de 100 elementos y un tiempo de vida de media hora (30 minutos * 60 segundos)
-        self.puuid = self.summoner_puuid()
         self.id = self.summoner_id()
+        
+        self.db = sqlite3.connect("data.db")
+        self.puuid = self.summoner_puuid_from_db()
+        if self.puuid is None:
+            self.puuid = self.summoner_puuid()
+            self.save_summoner_to_db()
+            
+            
+    def __del__(self):
+        self.db.close()
+        
+        
+    def summoner_puuid_from_db(self) -> str:
+        cursor = self.db.cursor()
+        cursor.execute(
+            "SELECT summoner_puuid FROM summoners WHERE summoner_name = ?",
+            (self.summoner_name,),
+        )
+        result = cursor.fetchone()
+        return result[0] if result is not None else None
     
+    
+    def save_summoner_to_db(self) -> None:
+        cursor = self.db.cursor()
+        cursor.execute(
+            "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region) VALUES (?, ?, ?, ?)",
+            (self.puuid, self.summoner_id(), self.summoner_name, self.region),
+        )
+        self.db.commit()
+        
         
     def _get(self, endpoint, general_region=False, **params) -> Dict[str, Any] :
         '''Método privado para realizar una solicitud GET a la API de Riot utilizando el endpoint seleccionado.
@@ -124,19 +152,39 @@ class Summoner:
     
     
     def games_data(self) -> dict:
-        """Comprueba si los datos para dadao summoner_puuid ya estan en cache antes de ejecutar la funcion _games_data(). Si existen los devuelve de la cache sin ejecutar la funcion siguiente. En el caso de que no existan, ejecuta _games_data
-        """
+        games_data = self.games_data_from_db()
+        if not games_data:
+            games_data = self._games_data()
+            self.save_games_data_to_db(games_data)
+        return games_data
+    
+    
+    def games_data_from_db(self) -> dict:
+        cursor = self.db.cursor()
+        cursor.execute(
+            "SELECT * FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
+        )
+        result = cursor.fetchall()
+        return {row[0]: row[1:] for row in result}
+    
+    
+    def save_games_data_to_db(self, games_data: dict) -> None:
+        cursor = self.db.cursor()
         
-        cache_key = f"{self.puuid}_games_data"
-        
-        
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-        
-        all_games_data = self._games_data()
-        self.cache[cache_key] = all_games_data
-        print(f"Data stored in cache for key {cache_key}")
-        return all_games_data
+        for match_id, game_data in games_data.items():
+            cursor.execute(
+                "INSERT INTO Matches (match_id, summoner_puuid, champion_name, kills, deaths, assists, win) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    match_id,
+                    self.puuid,
+                    game_data["championName"],
+                    game_data["kills"],
+                    game_data["deaths"],
+                    game_data["assists"],
+                    game_data["win"],
+                ),
+            )
+        self.db.commit()
         
         
     def _games_data(self) -> dict:    

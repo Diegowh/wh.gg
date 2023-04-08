@@ -66,3 +66,6 @@ config.ini
 
 # Logs
 *.log
+
+# database
+data.db
