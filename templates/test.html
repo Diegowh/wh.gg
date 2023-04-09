@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lol Project - By Diegowh</title>
+</head>
+<body>
+    <form action="{{ url_for('get_summoner')}}" method="POST">
+        <input type="text" placeholder="Summoner name" id="summoner_name" name="summoner_name">
+        <button type="submit">Send</button>
+        <br>
+        <br>
+        <br>
+        <br>
+        <label for="summoner name">Summoner name: <span id="summoner_name_preview">{{ summoner_name }}</span></label>
+    </form>
+</body>
+</html>

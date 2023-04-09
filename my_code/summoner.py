@@ -6,7 +6,7 @@ import sqlite3
 
 
 class Summoner:
-    def __init__(self, api_key: str, region: str, summoner_name: str) -> None:
+    def __init__(self, summoner_name: str, api_key: str, region: str = "EUW1") -> None:
         self.api_key = api_key
         self.region = region
         self.summoner_name = summoner_name
@@ -107,7 +107,7 @@ class Summoner:
         return self._get(endpoint) 
     
     
-    def total_ranked_games_played(self) -> Tuple[int, int]:
+    def total_ranked_games_played_per_queue(self) -> Tuple[int, int]:
         league_entries = self.league_entries()
         soloq_games_played = 0
         flex_games_played = 0
@@ -122,30 +122,23 @@ class Summoner:
     
     
     def all_ranked_matches_this_season(self) -> list:
+        '''
+        Devuelve todos los match id de las partidas jugadas.
+        '''
+        soloq_games_played, flex_games_played = self.total_ranked_games_played_per_queue()
+        games_played = sum([soloq_games_played, flex_games_played])
         
-        # start_time = time.time()
-        
-        soloq_games_played, flex_games_played = self.total_ranked_games_played()
         match_ids = []
-        queue_game_played_pairs = [(420, soloq_games_played), (440, flex_games_played)]
         
-        
-        for queue, games_played in queue_game_played_pairs:
-            for start_index in range(0, games_played, 100):
-                endpoint = f"match/v5/matches/by-puuid/{self.puuid}/ids"
-                params = {
-                    "startTime": int(SEASON_START_TIMESTAMP),
-                    "queue": int(queue),
-                    "start": int(start_index),
-                    "count": int(min(100, games_played - start_index))
-                }
-                current_match_ids = self._get(endpoint, general_region=True, **params)
-                match_ids += current_match_ids
-                start_index += len(current_match_ids)
-                
-        # end_time = time.time()
-        # execution_time = end_time - start_time
-        # print(f"Execution time: {execution_time:.2f} seconds")
+        for start_index in range(0, games_played, 100):
+            endpoint = f"match/v5/matches/by-puuid/{self.puuid}/ids"
+            params = {
+                "startTime": int(SEASON_START_TIMESTAMP),
+                "start": int(start_index),
+                "count": int(min(100, games_played - start_index))
+            }
+            current_match_ids = self._get(endpoint, general_region=True, **params)
+            match_ids += current_match_ids
 
         return match_ids
 
@@ -165,7 +158,19 @@ class Summoner:
             "SELECT * FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
         )
         result = cursor.fetchall()
-        return {row[0]: row[1:] for row in result}
+        games_data = {}
+        for row in result:
+            match_id = row[0]
+            game_data = {
+            "championName": row[2],
+            "kills": row[3],
+            "deaths": row[4],
+            "assists": row[5],
+            "win": row[6]
+        }
+            games_data[match_id] = game_data
+            
+        return games_data
     
     
     def save_games_data_to_db(self, games_data: dict) -> None:
@@ -231,43 +236,33 @@ class Summoner:
         return round(value / total_games, 1)
     
     
-    def champion_stats(self) -> dict[str, dict]:
-        
+    def champion_stats(self):
         champion_stats = {}
         games_data = self.games_data()
         for game_data in games_data.values():
             champion = game_data["championName"]
-            # compruebo si ya hay datos de ese champ
-            if champion not in champion_stats:
-                champion_stats[champion] = {
-                    "kills": 0,
-                    "deaths": 0,
-                    "assists": 0,
-                    "wins": 0,
-                    "games_played": 0
-                }
-            
-            champion_stats[champion]["kills"] += game_data["kills"]
-            champion_stats[champion]["deaths"] += game_data["deaths"]
-            champion_stats[champion]["assists"] += game_data["assists"]
-            champion_stats[champion]["wins"] += int(game_data["win"]) # al pasar bool a int, True = 1, False = 0.
-            champion_stats[champion]["games_played"] += 1
+            stats = champion_stats.setdefault(champion, {"kills": 0, "deaths": 0, "assists": 0, "wins": 0, "games_played": 0})
+            stats["kills"] += game_data["kills"]
+            stats["deaths"] += game_data["deaths"]
+            stats["assists"] += game_data["assists"]
+            stats["wins"] += int(game_data["win"])
+            stats["games_played"] += 1
 
-        # calculo el winratio y KDA, etc.
-        for champion in champion_stats:
-            
-            champion_stats[champion]["win_ratio"] = int(round((champion_stats[champion]["wins"] / champion_stats[champion]["games_played"]) * 100))
-            
-            champion_stats[champion]["kda"] = self.calculate_kda(champion_stats[champion]["kills"], champion_stats[champion]["deaths"], champion_stats[champion]["assists"])
-            
-            champion_stats[champion]["avg_kills"] = self.calculate_average(champion_stats[champion]["kills"], champion_stats[champion]["games_played"])
-            
-            champion_stats[champion]["avg_deaths"] = self.calculate_average(champion_stats[champion]["deaths"], champion_stats[champion]["games_played"])
-            
-            champion_stats[champion]["avg_assists"] = self.calculate_average(champion_stats[champion]["assists"], champion_stats[champion]["games_played"])
-    
-        
+        for stats in champion_stats.values():
+            stats["win_ratio"] = int(round((stats["wins"] / stats["games_played"]) * 100))
+            stats["kda"] = self.calculate_kda(stats["kills"], stats["deaths"], stats["assists"])
+            stats["avg_kills"] = self.calculate_average(stats["kills"], stats["games_played"])
+            stats["avg_deaths"] = self.calculate_average(stats["deaths"], stats["games_played"])
+            stats["avg_assists"] = self.calculate_average(stats["assists"], stats["games_played"])
+
         return champion_stats
+    
+    
+    
+    def top_champs_played(self, champion_stats, top=5):
+        
+        sorted_champs = sorted(champion_stats.items(), key=lambda x: x[1]['games_played'], reverse=True)
+        return sorted_champs[:top]
     
     
     
@@ -323,4 +318,25 @@ class Summoner:
         return recent_10_games
     
     
+    def get_new_matches(self) -> list:
+        '''
+        Compara los match_id de la base de datos con los obtenidos de la ultima solicitud a la API y devuelve una lista de los que no se encuentren en la abse de datos.
+        '''
+        all_matches = self.all_ranked_matches_this_season()
+        db_matches = self.match_ids_from_db()
+        new_matches = [match for match in all_matches if match not in db_matches]
+        
+        return new_matches
     
+    
+    def match_ids_from_db(self):
+        '''
+        Devuelve los match id de la base de datos.
+        '''
+        cursor = self.db.cursor()
+        cursor.execute(
+            "SELECT match_id FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
+        )
+        result = cursor.fetchall()
+        match_ids = [row[0] for row in result]
+        return match_ids
