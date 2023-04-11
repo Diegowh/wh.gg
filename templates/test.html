@@ -5,37 +5,57 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lol Project - By Diegowh</title>
+    <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
-    <form action="{{ url_for('get_summoner')}}" method="POST">
-        <input type="text" placeholder="Summoner name" id="summoner_name" name="summoner_name">
-        <button type="submit">Send</button>
-        <br>
-        <br>
-        <br>
-        <br>
-        <label for="summoner name">Summoner name: <span id="summoner_name_preview">{{ summoner_name }}</span></label>
-        <br>
-        <label for="Ranked Solo">Ranked Solo: <span id="soloq_rank_preview">{{ soloq_rank }}</span></label>
-        <br>
-        <label for="soloq_lp">Soloq_lp: <span id="soloq_lp">{{ soloq_lp }}</span></label>
-        <br>
-        <label for="soloq_wins">Soloq_wins: <span id="soloq_wins">{{ soloq_wins }}</span></label>
-        <br>
-        <label for="soloq_losses">Soloq_losses: <span id="soloq_losses">{{ soloq_losses }}</span></label>
-        <br>
-        <label for="soloq_wr">Soloq_wr: <span id="soloq_wr">{{ soloq_wr }}</span>%</label>
-        <br>
-        <label for="Ranked Flex">Ranked Flex: <span id="flex_rank_preview">{{ flex_rank }}</span></label>
-        <br>
-        <label for="flex_lp">Flex_lp: <span id="flex_lp">{{ flex_lp }}</span></label>
-        <br>
-        <label for="flex_wins">Flex_wins: <span id="flex_wins">{{ flex_wins }}</span></label>
-        <br>
-        <label for="flex_losses">Flex_losses: <span id="flex_losses">{{ flex_losses }}</span></label>
-        <br>
-        <label for="flex_wr">Flex_wr: <span id="flex_wr">{{ flex_wr }}</span>%</label>
-        <br>
-    </form>
+    <header>
+        <h1>TEST TEMPLATE</h1>
+    </header>
+    <main>
+        <form action="{{ url_for('home')}}" method="POST">
+            <label for="summoner_name">Summoner name:</label>
+            <input type="text" placeholder="Summoner name" id="summoner_name" name="summoner_name">
+            <button type="submit">Send</button>
+        </form>
+    </main>
+    <section>
+        <h2>Summoner Statistics</h2>
+        <!-- meto un comparador por la cara para que solo aparezca la plantilla si he hecho una busqueda ya -->
+        {% if summoner_name %}
+        <div>
+            <label>Summoner name: </label><span>{{ summoner_name }}</span>
+        </div>
+        <div>
+            <label>Ranked Solo: </label><span>{{ soloq_rank }}</span>
+        </div>
+        <div>
+            <label>Soloq_lp: </label><span>{{ soloq_lp }}</span>
+        </div>
+        <div>
+            <label>Soloq_wins: </label><span>{{ soloq_wins }}</span>
+        </div>
+        <div>
+            <label>Soloq_losses: </label><span>{{ soloq_losses }}</span>
+        </div>
+        <div>
+            <label>Soloq_wr: </label><span>{{ soloq_wr }}</span>%
+        </div>
+        <div>
+            <label>Ranked Flex: </label><span>{{ flex_rank }}</span>
+        </div>
+        <div>
+            <label>Flex_lp: </label><span>{{ flex_lp }}</span>
+        </div>
+        <div>
+            <label>Flex_wins: </label><span>{{ flex_wins }}</span>
+        </div>
+        <div>
+            <label>Flex_losses: </label><span>{{ flex_losses }}</span>
+        </div>
+        <div>
+            <label>Flex_wr: </label><span>{{ flex_wr }}</span>%
+        </div>
+        {% endif %}
+    </section>
 </body>
 </html>
