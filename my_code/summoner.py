@@ -5,6 +5,8 @@ import cachetools
 import sqlite3
 import time
 
+HOUR = 3600
+
 
 class Summoner:
     def __init__(self, summoner_name: str, api_key: str, region: str = "EUW1") -> None:
@@ -21,94 +23,93 @@ class Summoner:
         self.puuid = self.summoner_puuid_from_db()
         if self.puuid is None:
             self.puuid = self.summoner_puuid()
-            
-            
-    def __del__(self):
-        self.db.close()
         
         
     def summoner_puuid_from_db(self) -> str:
-        cursor = self.db.cursor()
-        cursor.execute(
-            "SELECT summoner_puuid FROM summoners WHERE summoner_name = ?",
-            (self.summoner_name,),
-        )
-        result = cursor.fetchone()
-        return result[0] if result is not None else None
+        with self.db as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT summoner_puuid FROM summoners WHERE summoner_name = ?",
+                (self.summoner_name,),
+            )
+            result = cursor.fetchone()
+            return result[0] if result is not None else None
     
     
     def save_or_update_summoner_to_db(self, league_data: dict) -> None:
         '''
         Guarda o actualiza los datos del summoner, dependiendo de si existia una ultima actualizacion o no.
         '''
-        cursor = self.db.cursor()
-        current_timestamp = int(time.time())
-        
-        # busco la ultima actualizacion de los datos de ese puuid
-        cursor.execute("SELECT last_update FROM summoners WHERE summoner_puuid = ?", (self.puuid,))
-        result = cursor.fetchone()
-        
-        if result:
-            last_update = result[0]
-            if current_timestamp - last_update >= 3600: # una hora
-                print("Updating summoner data in the database.")
-                cursor.execute(
-                    """
-                    UPDATE summoners SET
-                    summoner_id = ?, summoner_name = ?, region = ?, last_update = ?,
-                    soloq_rank = ?, soloq_lp = ?, soloq_wins = ?, soloq_losses = ?, soloq_wr = ?,
-                    flex_rank = ?, flex_lp = ?, flex_wins = ?, flex_losses = ?, flex_wr = ?
-                    WHERE summoner_puuid = ?
-                    """,
-                    (self.id, self.summoner_name, self.region, current_timestamp,
-                    league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],
-                    league_data["flex_rank"], league_data["flex_lp"], league_data["flex_wins"], league_data["flex_losses"], league_data["flex_wr"],
-                    self.puuid)
-                )
+        with self.db as conn:
+            cursor = conn.cursor()
+            current_timestamp = int(time.time())
+            
+            # busco la ultima actualizacion de los datos de ese puuid
+            cursor.execute("SELECT last_update FROM summoners WHERE summoner_puuid = ?", (self.puuid,))
+            result = cursor.fetchone()
+            
+            if result:
+                last_update = result[0]
+                if current_timestamp - last_update >= HOUR: # una hora
+                    print("Updating summoner data in the database.")
+                    cursor.execute(
+                        """
+                        UPDATE summoners SET
+                        summoner_id = ?, summoner_name = ?, region = ?, last_update = ?,
+                        soloq_rank = ?, soloq_lp = ?, soloq_wins = ?, soloq_losses = ?, soloq_wr = ?,
+                        flex_rank = ?, flex_lp = ?, flex_wins = ?, flex_losses = ?, flex_wr = ?
+                        WHERE summoner_puuid = ?
+                        """,
+                        (self.id, self.summoner_name, self.region, current_timestamp,
+                        league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],
+                        league_data["flex_rank"], league_data["flex_lp"], league_data["flex_wins"], league_data["flex_losses"], league_data["flex_wr"],
+                        self.puuid)
+                    )
+                else:
+                    print("Summoner data is up-to-date.")
+                    
             else:
-                print("Summoner data is up-to-date.")
-                
-        else:
-            print("Inserting new summoner data into the database.")
-            cursor.execute(
-                "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region, last_update, soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, flex_rank, flex_lp, flex_wins, flex_losses, flex_wr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (self.puuid, self.id, self.summoner_name, self.region, current_timestamp, league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],league_data["flex_rank"],league_data["flex_lp"],league_data["flex_wins"],league_data["flex_losses"],league_data["flex_wr"]),
-            )
-        self.db.commit()
+                print("Inserting new summoner data into the database.")
+                cursor.execute(
+                    "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region, last_update, soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, flex_rank, flex_lp, flex_wins, flex_losses, flex_wr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (self.puuid, self.id, self.summoner_name, self.region, current_timestamp, league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],league_data["flex_rank"],league_data["flex_lp"],league_data["flex_wins"],league_data["flex_losses"],league_data["flex_wr"]),
+                )
+            conn.commit()
         
         
     def _summoner_data_from_db(self) -> dict:
         '''
         Devuelve un diccionario con los datos de un summoner almacenados en la base de datos
         '''
-        cursor = self.db.cursor()
-        cursor.execute(
-            """
-            SELECT soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, 
-            flex_rank, flex_lp, flex_wins, flex_losses, flex_wr
-            FROM summoners WHERE summoner_puuid = ?
-            """,
-            (self.puuid,)
-        )
-        result = cursor.fetchone()
-        
-        if result:
-            summoner_data = {
-                "soloq_rank": result[0],
-                "soloq_lp": result[1],
-                "soloq_wins": result[2],
-                "soloq_losses": result[3],
-                "soloq_wr": result[4],
-                "flex_rank": result[5],
-                "flex_lp": result[6],
-                "flex_wins": result[7],
-                "flex_losses": result[8],
-                "flex_wr": result[9]
-            }
-            return summoner_data
+        with self.db as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, 
+                flex_rank, flex_lp, flex_wins, flex_losses, flex_wr
+                FROM summoners WHERE summoner_puuid = ?
+                """,
+                (self.puuid,)
+            )
+            result = cursor.fetchone()
+            
+            if result:
+                summoner_data = {
+                    "soloq_rank": result[0],
+                    "soloq_lp": result[1],
+                    "soloq_wins": result[2],
+                    "soloq_losses": result[3],
+                    "soloq_wr": result[4],
+                    "flex_rank": result[5],
+                    "flex_lp": result[6],
+                    "flex_wins": result[7],
+                    "flex_losses": result[8],
+                    "flex_wr": result[9]
+                }
+                return summoner_data
 
-        else:
-            return None
+            else:
+                return None
         
     def _get(self, endpoint, general_region=False, **params) -> Dict[str, Any] :
         '''Método privado para realizar una solicitud GET a la API de Riot utilizando el endpoint seleccionado.
@@ -159,9 +160,9 @@ class Summoner:
         
         
         # TODO Convertir numeros romanos de la liga a numeros NORMALES
-        # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud  
+        # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud
         for entry in league_entries:
-            win_rate = (entry['wins'] / (entry['wins'] + entry['losses'])) * 100
+            win_rate = int(round((entry['wins'] / (entry['wins'] + entry['losses'])) * 100))
             if entry["queueType"] == "RANKED_SOLO_5x5":
                 ranks["soloq_rank"] = f"{entry['tier']} {entry['rank']}"
                 ranks["soloq_lp"] = entry['leaguePoints']
@@ -203,12 +204,6 @@ class Summoner:
             return data
     
     
-    
-    def champions_data(self) -> Dict[str, Any]:
-        endpoint = f"champion-mastery/v4/champion-masteries/by-summoner/{self.id}"
-        return self._get(endpoint) 
-    
-    
     def total_ranked_games_played_per_queue(self) -> Tuple[int, int]:
         league_entries = self.league_entries()
         soloq_games_played = 0
@@ -235,8 +230,8 @@ class Summoner:
         for start_index in range(0, games_played, 100):
             endpoint = f"match/v5/matches/by-puuid/{self.puuid}/ids"
             params = {
-                "startTime": int(SEASON_START_TIMESTAMP),
-                "start": int(start_index),
+                "startTime": SEASON_START_TIMESTAMP,
+                "start": start_index,
                 "count": int(min(100, games_played - start_index))
             }
             current_match_ids = self._get(endpoint, general_region=True, **params)
@@ -255,43 +250,45 @@ class Summoner:
     
     
     def games_data_from_db(self) -> dict:
-        cursor = self.db.cursor()
-        cursor.execute(
-            "SELECT * FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
-        )
-        result = cursor.fetchall()
-        games_data = {}
-        for row in result:
-            match_id = row[0]
-            game_data = {
-            "championName": row[2],
-            "kills": row[3],
-            "deaths": row[4],
-            "assists": row[5],
-            "win": row[6]
-        }
-            games_data[match_id] = game_data
-            
-        return games_data
+        with self.db as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
+            )
+            result = cursor.fetchall()
+            games_data = {}
+            for row in result:
+                match_id = row[0]
+                game_data = {
+                "championName": row[2],
+                "kills": row[3],
+                "deaths": row[4],
+                "assists": row[5],
+                "win": row[6]
+            }
+                games_data[match_id] = game_data
+                
+            return games_data
     
     
     def save_games_data_to_db(self, games_data: dict) -> None:
-        cursor = self.db.cursor()
-        
-        for match_id, game_data in games_data.items():
-            cursor.execute(
-                "INSERT INTO Matches (match_id, summoner_puuid, champion_name, kills, deaths, assists, win) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    match_id,
-                    self.puuid,
-                    game_data["championName"],
-                    game_data["kills"],
-                    game_data["deaths"],
-                    game_data["assists"],
-                    game_data["win"],
-                ),
-            )
-        self.db.commit()
+        with self.db as conn:
+            cursor = conn.cursor()
+            
+            for match_id, game_data in games_data.items():
+                cursor.execute(
+                    "INSERT INTO Matches (match_id, summoner_puuid, champion_name, kills, deaths, assists, win) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        match_id,
+                        self.puuid,
+                        game_data["championName"],
+                        game_data["kills"],
+                        game_data["deaths"],
+                        game_data["assists"],
+                        game_data["win"],
+                    ),
+                )
+            conn.commit()
         
         
     def _games_data(self) -> dict:    
@@ -432,10 +429,39 @@ class Summoner:
         '''
         Devuelve los match id de la base de datos.
         '''
-        cursor = self.db.cursor()
-        cursor.execute(
-            "SELECT match_id FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
-        )
-        result = cursor.fetchall()
-        match_ids = [row[0] for row in result]
-        return match_ids
+        with self.db as conn:
+            
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT match_id FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
+            )
+            result = cursor.fetchall()
+            match_ids = [row[0] for row in result]
+            return match_ids
+    
+    
+    
+# TODO: Code Smells and Improvements:
+
+"""
+1. Long class: The Summoner class is quite long, with many methods for fetching and processing data. Consider breaking the class into smaller classes, each with a specific responsibility (e.g., one class for database handling, another for API requests, and a third for data processing).
+
+2. Multiple languages: The code comments and print statements are in different languages. Ensure that comments and output are consistent, ideally in English for broader accessibility.
+
+3. Repeated code: Several methods contain repeated code patterns, such as cursor initialization and database query execution. Consider creating a separate method to handle these repetitive tasks to improve code readability and reduce duplication.
+
+4. Magic numbers: There are a few hardcoded numbers in the code, such as time intervals and cache sizes. Replace these magic numbers with named constants for better readability and maintainability.
+
+5. Use context managers: When working with databases, it's better to use context managers (i.e., with statement) to ensure that resources like cursors are properly closed.
+
+6. Replace __del__ with a context manager: The __del__ method is not guaranteed to be called when an object is garbage collected. Instead, implement a context manager using __enter__ and __exit__ methods to handle resource clean-up (e.g., closing the database connection).
+
+7. Error handling: The _get method raises a generic Exception. Consider raising a more specific exception or using a custom exception class to provide better error information.
+
+8. Avoid storing the API key in the class: Storing sensitive information like the API key in the class can be a security risk. Pass the API key as an argument to the methods that require it, or use environment variables or configuration files to store sensitive information.
+
+9. Inline comments: Some inline comments are lengthy and could be better placed above the code line they are describing. This will improve code readability.
+
+10. Remove unnecessary conversion to int in dictionary: In the all_ranked_matches_this_season method, start and count are already integers, so there is no need to wrap them with int().
+
+11. Method and variable naming: Some method and variable names are not descriptive enough, making it harder to understand their purpose. Consider using more descriptive names for better code readability (e.g., soloq_rank could be solo_queue_rank)."""
