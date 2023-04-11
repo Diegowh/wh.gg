@@ -1,8 +1,9 @@
 from typing import Dict, Any, Tuple
-from season_constants import SEASON_START_TIMESTAMP
-from request_utils import make_request
+from .season_constants import SEASON_START_TIMESTAMP
+from .request_utils import make_request
 import cachetools
 import sqlite3
+import time
 
 
 class Summoner:
@@ -20,7 +21,6 @@ class Summoner:
         self.puuid = self.summoner_puuid_from_db()
         if self.puuid is None:
             self.puuid = self.summoner_puuid()
-            self.save_summoner_to_db()
             
             
     def __del__(self):
@@ -37,14 +37,78 @@ class Summoner:
         return result[0] if result is not None else None
     
     
-    def save_summoner_to_db(self) -> None:
+    def save_or_update_summoner_to_db(self, league_data: dict) -> None:
+        '''
+        Guarda o actualiza los datos del summoner, dependiendo de si existia una ultima actualizacion o no.
+        '''
         cursor = self.db.cursor()
-        cursor.execute(
-            "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region) VALUES (?, ?, ?, ?)",
-            (self.puuid, self.summoner_id(), self.summoner_name, self.region),
-        )
+        current_timestamp = int(time.time())
+        
+        # busco la ultima actualizacion de los datos de ese puuid
+        cursor.execute("SELECT last_update FROM summoners WHERE summoner_puuid = ?", (self.puuid,))
+        result = cursor.fetchone()
+        
+        if result:
+            last_update = result[0]
+            if current_timestamp - last_update >= 3600: # una hora
+                print("Updating summoner data in the database.")
+                cursor.execute(
+                    """
+                    UPDATE summoners SET
+                    summoner_id = ?, summoner_name = ?, region = ?, last_update = ?,
+                    soloq_rank = ?, soloq_lp = ?, soloq_wins = ?, soloq_losses = ?, soloq_wr = ?,
+                    flex_rank = ?, flex_lp = ?, flex_wins = ?, flex_losses = ?, flex_wr = ?
+                    WHERE summoner_puuid = ?
+                    """,
+                    (self.id, self.summoner_name, self.region, current_timestamp,
+                    league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],
+                    league_data["flex_rank"], league_data["flex_lp"], league_data["flex_wins"], league_data["flex_losses"], league_data["flex_wr"],
+                    self.puuid)
+                )
+            else:
+                print("Summoner data is up-to-date.")
+                
+        else:
+            print("Inserting new summoner data into the database.")
+            cursor.execute(
+                "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region, last_update, soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, flex_rank, flex_lp, flex_wins, flex_losses, flex_wr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (self.puuid, self.id, self.summoner_name, self.region, current_timestamp, league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],league_data["flex_rank"],league_data["flex_lp"],league_data["flex_wins"],league_data["flex_losses"],league_data["flex_wr"]),
+            )
         self.db.commit()
         
+        
+    def _summoner_data_from_db(self) -> dict:
+        '''
+        Devuelve un diccionario con los datos de un summoner almacenados en la base de datos
+        '''
+        cursor = self.db.cursor()
+        cursor.execute(
+            """
+            SELECT soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, 
+            flex_rank, flex_lp, flex_wins, flex_losses, flex_wr
+            FROM summoners WHERE summoner_puuid = ?
+            """,
+            (self.puuid,)
+        )
+        result = cursor.fetchone()
+        
+        if result:
+            summoner_data = {
+                "soloq_rank": result[0],
+                "soloq_lp": result[1],
+                "soloq_wins": result[2],
+                "soloq_losses": result[3],
+                "soloq_wr": result[4],
+                "flex_rank": result[5],
+                "flex_lp": result[6],
+                "flex_wins": result[7],
+                "flex_losses": result[8],
+                "flex_wr": result[9]
+            }
+            return summoner_data
+
+        else:
+            return None
         
     def _get(self, endpoint, general_region=False, **params) -> Dict[str, Any] :
         '''Método privado para realizar una solicitud GET a la API de Riot utilizando el endpoint seleccionado.
@@ -85,6 +149,8 @@ class Summoner:
             "flex_rank": "Unranked",
             }
         
+        
+        # TODO Convertir numeros romanos de la liga a numeros NORMALES 
         for entry in league_entries:
             if entry["queueType"] == "RANKED_SOLO_5x5":
                 ranks["soloq_rank"] = f"{entry['tier']} {entry['rank']}"
@@ -97,6 +163,42 @@ class Summoner:
     def soloq_rank(self) -> str:
         return self.summoner_ranks()['soloq_rank']
     
+
+    
+    
+    def league_data(self) -> dict:
+        '''
+        Diccionario de datos de solo queue y flex.
+        '''
+        # intento obtener los datos de la base de datos
+        summoner_data = self._summoner_data_from_db()
+        
+        if summoner_data:
+            return summoner_data
+        else:
+            
+            data = {
+                "soloq_rank": self.soloq_rank(),
+                "flex_rank": self.flex_rank(),
+            }
+            
+            # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud 
+            for entry in self.league_entries(): 
+                if entry["queueType"] == "RANKED_SOLO_5x5":
+                    data["soloq_lp"] = entry['leaguePoints']
+                    data["soloq_wins"] = entry['wins']
+                    data["soloq_losses"] = entry['losses']
+                    data["soloq_wr"] = int(round((entry['wins'] * 100) / (entry['wins'] + entry['losses'])))
+            
+                elif entry["queueType"] == "RANKED_FLEX_SR":
+                    data["flex_lp"] = entry['leaguePoints']
+                    data["flex_wins"] = entry['wins']
+                    data["flex_losses"] = entry['losses']
+                    data["flex_wr"] = int(round((entry['wins'] * 100) / (entry['wins'] + entry['losses'])))
+
+            self.save_or_update_summoner_to_db(data)
+            
+            return data
     
     def flex_rank(self) -> str:
         return self.summoner_ranks()['flex_rank']
@@ -258,18 +360,15 @@ class Summoner:
         return champion_stats
     
     
-    
     def top_champs_played(self, champion_stats, top=5):
         
         sorted_champs = sorted(champion_stats.items(), key=lambda x: x[1]['games_played'], reverse=True)
         return sorted_champs[:top]
     
     
-    
     def recent_10_games_data(self) -> list[dict]:
         recent_10_games = []
         all_ranked_matches = self.all_ranked_matches_this_season()
-        # TODO Optimizar esto para no tener que sacar todas las partidas de una season. Crear otro metodo que sea especifico para las ultimas 10 partidas.
         
         # por cada id de partida hago solicitud para obtener sus datos
         for match_id in reversed(all_ranked_matches[-10:]):
@@ -295,7 +394,7 @@ class Summoner:
                     game_data = {
                         "game_mode": match_request["info"]["gameMode"],
                         "win": participant_data["win"],
-                        "champion_name": participant_data["championName"], #TODO A lo mejor puedo quitar esto ya que esta en la lista de arriba
+                        "champion_name": participant_data["championName"], 
                         "score": f'{participant_data["kills"]}/{participant_data["deaths"]}/{participant_data["assists"]}',
                         "kda": self.calculate_kda(participant_data["kills"], participant_data["deaths"], participant_data["assists"]),
                         "cs": participant_data["totalMinionsKilled"] + participant_data["neutralMinionsKilled"],
