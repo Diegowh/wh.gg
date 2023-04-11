@@ -16,7 +16,7 @@ def home():
 
 @app.route('/get_summoner', methods=['POST'])
 def get_summoner():
-    summoner_name = quote(request.form['summoner_name'])
+    summoner_name = request.form['summoner_name']
     api_key = "RGAPI-13f2c40d-9832-4434-afe5-d7607e66bc36"
     region = "EUW1"
     

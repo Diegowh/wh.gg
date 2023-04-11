@@ -141,29 +141,49 @@ class Summoner:
         return self._get(endpoint)
     
     
-    def summoner_ranks(self)-> Dict[str, str]:
+    def fetch_summoner_ranks(self)-> Dict[str, str]:
         '''Retorna el rank de soloq y flex en formato Dict'''
         league_entries = self.league_entries()
         ranks = {
-            "soloq_rank": "Unranked", 
+            "soloq_rank": "Unranked",
+            "soloq_lp": 0,
+            "soloq_wins": 0,
+            "soloq_losses": 0,
+            "soloq_wr": 0,
             "flex_rank": "Unranked",
-            }
+            "flex_lp": 0,
+            "flex_wins": 0,
+            "flex_losses": 0,
+            "flex_wr": 0,
+        }
         
         
-        # TODO Convertir numeros romanos de la liga a numeros NORMALES 
+        # TODO Convertir numeros romanos de la liga a numeros NORMALES
+        # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud  
         for entry in league_entries:
+            win_rate = (entry['wins'] / (entry['wins'] + entry['losses'])) * 100
             if entry["queueType"] == "RANKED_SOLO_5x5":
                 ranks["soloq_rank"] = f"{entry['tier']} {entry['rank']}"
+                ranks["soloq_lp"] = entry['leaguePoints']
+                ranks["soloq_wins"] = entry['wins']
+                ranks["soloq_losses"] = entry['losses']
+                ranks["soloq_wr"] = win_rate
             elif entry["queueType"] == "RANKED_FLEX_SR":
                 ranks["flex_rank"] = f"{entry['tier']} {entry['rank']}"
-                
+                ranks["flex_lp"] = entry['leaguePoints']
+                ranks["flex_wins"] = entry['wins']
+                ranks["flex_losses"] = entry['losses']
+                ranks["flex_wr"] = win_rate
+
         return ranks
     
     
     def soloq_rank(self) -> str:
-        return self.summoner_ranks()['soloq_rank']
+        return self.fetch_summoner_ranks()['soloq_rank']
     
-
+    
+    def flex_rank(self) -> str:
+        return self.fetch_summoner_ranks()['flex_rank']
     
     
     def league_data(self) -> dict:
@@ -177,31 +197,11 @@ class Summoner:
             return summoner_data
         else:
             
-            data = {
-                "soloq_rank": self.soloq_rank(),
-                "flex_rank": self.flex_rank(),
-            }
-            
-            # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud 
-            for entry in self.league_entries(): 
-                if entry["queueType"] == "RANKED_SOLO_5x5":
-                    data["soloq_lp"] = entry['leaguePoints']
-                    data["soloq_wins"] = entry['wins']
-                    data["soloq_losses"] = entry['losses']
-                    data["soloq_wr"] = int(round((entry['wins'] * 100) / (entry['wins'] + entry['losses'])))
-            
-                elif entry["queueType"] == "RANKED_FLEX_SR":
-                    data["flex_lp"] = entry['leaguePoints']
-                    data["flex_wins"] = entry['wins']
-                    data["flex_losses"] = entry['losses']
-                    data["flex_wr"] = int(round((entry['wins'] * 100) / (entry['wins'] + entry['losses'])))
-
+            data = self.fetch_summoner_ranks()
             self.save_or_update_summoner_to_db(data)
             
             return data
     
-    def flex_rank(self) -> str:
-        return self.summoner_ranks()['flex_rank']
     
     
     def champions_data(self) -> Dict[str, Any]:
