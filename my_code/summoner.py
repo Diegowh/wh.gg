@@ -4,6 +4,7 @@ from .request_utils import make_request
 import cachetools
 import sqlite3
 import time
+import roman
 
 HOUR = 3600
 
@@ -164,13 +165,13 @@ class Summoner:
         for entry in league_entries:
             win_rate = int(round((entry['wins'] / (entry['wins'] + entry['losses'])) * 100))
             if entry["queueType"] == "RANKED_SOLO_5x5":
-                ranks["soloq_rank"] = f"{entry['tier']} {entry['rank']}"
+                ranks["soloq_rank"] = f"{entry['tier']} {roman.fromRoman(entry['rank'])}"
                 ranks["soloq_lp"] = entry['leaguePoints']
                 ranks["soloq_wins"] = entry['wins']
                 ranks["soloq_losses"] = entry['losses']
                 ranks["soloq_wr"] = win_rate
             elif entry["queueType"] == "RANKED_FLEX_SR":
-                ranks["flex_rank"] = f"{entry['tier']} {entry['rank']}"
+                ranks["flex_rank"] = f"{entry['tier']} {roman.fromRoman(entry['rank'])}"
                 ranks["flex_lp"] = entry['leaguePoints']
                 ranks["flex_wins"] = entry['wins']
                 ranks["flex_losses"] = entry['losses']
