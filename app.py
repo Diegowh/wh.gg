@@ -14,7 +14,7 @@ app = Flask(__name__)
 def home():
     if request.method == 'POST':
         summoner_name = request.form['summoner_name']
-        api_key = "RGAPI-13f2c40d-9832-4434-afe5-d7607e66bc36"
+        api_key = "RGAPI-c9cb940a-b986-4b26-bfbf-e65f3ea60204"
         region = "EUW1"
         
         summoner = Summoner(summoner_name, api_key, region)
@@ -33,7 +33,11 @@ def home():
                             flex_wins=summoner_data['flex_wins'],
                             flex_losses=summoner_data['flex_losses'],
                             flex_wr=summoner_data['flex_wr'],
-                            
+                            champion_played_0=matches_data[0]["champion_name"],
+                            champion_played_1=matches_data[1]["champion_name"],
+                            champion_played_2=matches_data[2]["champion_name"],
+                            champion_played_3=matches_data[3]["champion_name"],
+                            champion_played_4=matches_data[4]["champion_name"],
                             )
     else:
         return render_template("test.html")

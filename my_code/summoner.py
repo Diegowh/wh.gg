@@ -241,17 +241,20 @@ class Summoner:
         return match_ids
 
     
-    
-    def recent_matches_data(self) -> dict:
+    def recent_matches_data(self) -> list:
         matches_data = self._matches_data_from_db()
-        recent_match_ids = sorted(matches_data.keys(), reverse=True)[:RECENT_MATCHES_LIMIT]
 
-        recent_matches_data = {match_id: matches_data[match_id] for match_id in recent_match_ids}
-        
+        def match_id_key(match_data):
+            return match_data["match_id"]
+
+        matches_data.sort(key=match_id_key, reverse=True)
+        recent_matches_data = matches_data[:RECENT_MATCHES_LIMIT]
+
         return recent_matches_data
+
     
     
-    def _matches_data_from_db(self) -> dict:
+    def _matches_data_from_db(self) -> list[dict]:
         with self.db as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -268,14 +271,19 @@ class Summoner:
                     new_matches_data = self._matches_data(recent_matches)
                     self.save_matches_data_to_db(new_matches_data)
             
+            else:
+                all_matches = self.all_ranked_matches_this_season()
+                if all_matches:
+                    all_matches_data = self._matches_data(all_matches)
+                    self.save_matches_data_to_db(all_matches_data)
+            
             cursor.execute(
                 "SELECT * FROM matches WHERE summoner_puuid = ?", (self.puuid,)
             )
             result = cursor.fetchall()
-            matches_data = {}
+            matches_data = []
             for row in result:
-                match_id = row[2]
-                game_data = {
+                match_data = {
                     "summoner_puuid": row[1],
                     "match_id": row[2],
                     "champion_name": row[3],
@@ -326,7 +334,7 @@ class Summoner:
                     "participant9_team_id": row[48],
                     "participant10_team_id": row[49],
                 }
-                matches_data[match_id] = game_data
+                matches_data.append(match_data)
                 
         return matches_data
     
@@ -334,21 +342,79 @@ class Summoner:
     def save_matches_data_to_db(self, matches_data: dict) -> None:
         with self.db as conn:
             cursor = conn.cursor()
-            
+
             for match_id, game_data in matches_data.items():
+                summoner_data = game_data["summoner_data"]
+                participants_data = game_data["participants_data"]
+                
                 cursor.execute(
-                    "INSERT INTO Matches (match_id, summoner_puuid, champion_name, kills, deaths, assists, win) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    """
+                    INSERT INTO matches (
+                        summoner_puuid, match_id, champion_name, win, kills, deaths, assists, kda, cs, vision, 
+                        summoner_spell1, summoner_spell2, item0, item1, item2, item3, item4, item5, item6,
+                        participant1_puuid, participant2_puuid, participant3_puuid, participant4_puuid, participant5_puuid, 
+                        participant6_puuid, participant7_puuid, participant8_puuid, participant9_puuid, participant10_puuid, 
+                        participant1_champion_id, participant2_champion_id, participant3_champion_id, participant4_champion_id, participant5_champion_id, 
+                        participant6_champion_id, participant7_champion_id, participant8_champion_id, participant9_champion_id, participant10_champion_id, 
+                        participant1_team_id, participant2_team_id, participant3_team_id, participant4_team_id, participant5_team_id, 
+                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
                     (
+                        summoner_data["summoner_puuid"],
                         match_id,
-                        self.puuid,
-                        game_data["championName"],
-                        game_data["kills"],
-                        game_data["deaths"],
-                        game_data["assists"],
-                        game_data["win"],
+                        summoner_data["champion_name"],
+                        summoner_data["win"],
+                        summoner_data["kills"],
+                        summoner_data["deaths"],
+                        summoner_data["assists"],
+                        summoner_data["kda"],
+                        summoner_data["cs"],
+                        summoner_data["vision"],
+                        summoner_data["summoner_spell1"],
+                        summoner_data["summoner_spell2"],
+                        summoner_data["item0"],
+                        summoner_data["item1"],
+                        summoner_data["item2"],
+                        summoner_data["item3"],
+                        summoner_data["item4"],
+                        summoner_data["item5"],
+                        summoner_data["item6"],
+                        participants_data[0]["puuid"],
+                        participants_data[1]["puuid"],
+                        participants_data[2]["puuid"],
+                        participants_data[3]["puuid"],
+                        participants_data[4]["puuid"],
+                        participants_data[5]["puuid"],
+                        participants_data[6]["puuid"],
+                        participants_data[7]["puuid"],
+                        participants_data[8]["puuid"],
+                        participants_data[9]["puuid"],
+                        participants_data[0]["puuid"],
+                        participants_data[1]["champion_name"],
+                        participants_data[2]["champion_name"],
+                        participants_data[3]["champion_name"],
+                        participants_data[4]["champion_name"],
+                        participants_data[5]["champion_name"],
+                        participants_data[6]["champion_name"],
+                        participants_data[7]["champion_name"],
+                        participants_data[8]["champion_name"],
+                        participants_data[9]["champion_name"],
+                        participants_data[0]["team_id"],
+                        participants_data[1]["team_id"],
+                        participants_data[2]["team_id"],
+                        participants_data[3]["team_id"],
+                        participants_data[4]["team_id"],
+                        participants_data[5]["team_id"],
+                        participants_data[6]["team_id"],
+                        participants_data[7]["team_id"],
+                        participants_data[8]["team_id"],
+                        participants_data[9]["team_id"],
                     ),
-                )
-            conn.commit()
+            )
+        conn.commit()
+
         
         
     def _matches_data(self, match_ids: list = None) -> dict:    
