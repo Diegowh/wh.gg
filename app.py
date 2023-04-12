@@ -19,6 +19,7 @@ def home():
         
         summoner = Summoner(summoner_name, api_key, region)
         summoner_data = summoner.league_data()
+        matches_data = summoner.recent_matches_data()
         
         return render_template('test.html', 
                             summoner_name=summoner_name, 
@@ -31,7 +32,8 @@ def home():
                             flex_lp=summoner_data['flex_lp'],
                             flex_wins=summoner_data['flex_wins'],
                             flex_losses=summoner_data['flex_losses'],
-                            flex_wr=summoner_data['flex_wr']
+                            flex_wr=summoner_data['flex_wr'],
+                            
                             )
     else:
         return render_template("test.html")

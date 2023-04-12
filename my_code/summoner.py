@@ -7,7 +7,7 @@ import time
 import roman
 
 HOUR = 3600
-
+RECENT_MATCHES_LIMIT = 10
 
 class Summoner:
     def __init__(self, summoner_name: str, api_key: str, region: str = "EUW1") -> None:
@@ -159,8 +159,7 @@ class Summoner:
             "flex_wr": 0,
         }
         
-        
-        # TODO Convertir numeros romanos de la liga a numeros NORMALES
+    
         # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud
         for entry in league_entries:
             win_rate = int(round((entry['wins'] / (entry['wins'] + entry['losses'])) * 100))
@@ -190,7 +189,8 @@ class Summoner:
     
     def league_data(self) -> dict:
         '''
-        Diccionario de datos de solo queue y flex.
+        Intenta obtener los datos de soloq y flex desde la base de datos. Si no existen, los solicita a la API con fetch_summoner_ranks() y los guarda en la base de datos.
+        Además, si han pasado más de una hora desde la última actualización, actualiza los datos de partidas y la información del invocador en la base de datos.
         '''
         # intento obtener los datos de la base de datos
         summoner_data = self._summoner_data_from_db()
@@ -242,41 +242,100 @@ class Summoner:
 
     
     
-    def games_data(self) -> dict:
-        games_data = self.games_data_from_db()
-        if not games_data:
-            games_data = self._games_data()
-            self.save_games_data_to_db(games_data)
-        return games_data
+    def recent_matches_data(self) -> dict:
+        matches_data = self._matches_data_from_db()
+        recent_match_ids = sorted(matches_data.keys(), reverse=True)[:RECENT_MATCHES_LIMIT]
+
+        recent_matches_data = {match_id: matches_data[match_id] for match_id in recent_match_ids}
+        
+        return recent_matches_data
     
     
-    def games_data_from_db(self) -> dict:
+    def _matches_data_from_db(self) -> dict:
         with self.db as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
+                "SELECT match_id FROM matches WHERE summoner_puuid = ? ORDER BY match_id DESC LIMIT 1",
+                (self.puuid,)
+            )
+            last_match_id =  cursor.fetchone()
+            
+            if last_match_id:
+                recent_matches = [
+                    match_id for match_id in self.all_ranked_matches_this_season() if match_id > last_match_id[0]
+                ]
+                if recent_matches:
+                    new_matches_data = self._matches_data(recent_matches)
+                    self.save_matches_data_to_db(new_matches_data)
+            
+            cursor.execute(
+                "SELECT * FROM matches WHERE summoner_puuid = ?", (self.puuid,)
             )
             result = cursor.fetchall()
-            games_data = {}
+            matches_data = {}
             for row in result:
-                match_id = row[0]
+                match_id = row[2]
                 game_data = {
-                "championName": row[2],
-                "kills": row[3],
-                "deaths": row[4],
-                "assists": row[5],
-                "win": row[6]
-            }
-                games_data[match_id] = game_data
+                    "summoner_puuid": row[1],
+                    "match_id": row[2],
+                    "champion_name": row[3],
+                    "win": row[4],
+                    "kills": row[5],
+                    "deaths": row[6],
+                    "assists": row[7],
+                    "kda": row[8],
+                    "cs": row[9],
+                    "vision": row[10],
+                    "summoner_spell1": row[11],
+                    "summoner_spell2": row[12],
+                    "item0": row[13],
+                    "item1": row[14],
+                    "item2": row[15],
+                    "item3": row[16],
+                    "item4": row[17],
+                    "item5": row[18],
+                    "item6": row[19],
+                    "participant1_puuid": row[20],
+                    "participant2_puuid": row[21],
+                    "participant3_puuid": row[22],
+                    "participant4_puuid": row[23],
+                    "participant5_puuid": row[24],
+                    "participant6_puuid": row[25],
+                    "participant7_puuid": row[26],
+                    "participant8_puuid": row[27],
+                    "participant9_puuid": row[28],
+                    "participant10_puuid": row[29],
+                    "participant1_champion_id": row[30],
+                    "participant2_champion_id": row[31],
+                    "participant3_champion_id": row[32],
+                    "participant4_champion_id": row[33],
+                    "participant5_champion_id": row[34],
+                    "participant6_champion_id": row[35],
+                    "participant7_champion_id": row[36],
+                    "participant8_champion_id": row[37],
+                    "participant9_champion_id": row[38],
+                    "participant10_champion_id": row[39],
+                    "participant1_team_id": row[40],
+                    "participant2_team_id": row[41],
+                    "participant3_team_id": row[42],
+                    "participant4_team_id": row[43],
+                    "participant5_team_id": row[44],
+                    "participant6_team_id": row[45],
+                    "participant7_team_id": row[46],
+                    "participant8_team_id": row[47],
+                    "participant9_team_id": row[48],
+                    "participant10_team_id": row[49],
+                }
+                matches_data[match_id] = game_data
                 
-            return games_data
+        return matches_data
     
     
-    def save_games_data_to_db(self, games_data: dict) -> None:
+    def save_matches_data_to_db(self, matches_data: dict) -> None:
         with self.db as conn:
             cursor = conn.cursor()
             
-            for match_id, game_data in games_data.items():
+            for match_id, game_data in matches_data.items():
                 cursor.execute(
                     "INSERT INTO Matches (match_id, summoner_puuid, champion_name, kills, deaths, assists, win) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
@@ -292,39 +351,60 @@ class Summoner:
             conn.commit()
         
         
-    def _games_data(self) -> dict:    
-        """Tomando los match ID de las rankeds jugadas en toda la temporada, devuelve los datos del usuario en estas partidas.
-
-        Returns:
-            dict: Champion name, kills, deaths, assists, win
+    def _matches_data(self, match_ids: list = None) -> dict:    
         """
+        Devuelve un diccionario con los datos del summoner y los datos de todos los participantes para cada match_id.
+        """
+        if match_ids is None:
+            match_ids = self.all_ranked_matches_this_season()
+            
+        all_matches_data = {}
         
-        all_games_data = {}
-        
-        for match_id in self.all_ranked_matches_this_season():
+        for match_id in match_ids:
             endpoint = f"match/v5/matches/{match_id}"
             match_request = self._get(general_region=True, endpoint=endpoint)
             
-            participants = {
-                participant["puuid"]: participant
-                for participant in match_request["info"]["participants"]
-            }
-            
-            if self.puuid in participants:
-                participant_data = participants[self.puuid]
-                match_data = {
-                    "championName": participant_data["championName"],
-                    "kills": participant_data["kills"],
-                    "deaths": participant_data["deaths"],
-                    "assists": participant_data["assists"],
-                    "win": participant_data["win"],
+            summoner_data = None
+            participants_data = []
+
+
+            for participant in match_request["info"]["participants"]:
+                participant_info = {
+                    "puuid": participant["puuid"],
+                    "champion_name": participant["championName"],
+                    "team_id": participant["teamId"],
                 }
+                participants_data.append(participant_info)
+                
+                if participant["puuid"] == self.puuid:
+                    summoner_data = {
+                        "summoner_puuid": self.puuid,
+                        "champion_name": participant["championName"],
+                        "kills": participant["kills"],
+                        "deaths": participant["deaths"],
+                        "assists": participant["assists"],
+                        "win": participant["win"],
+                        "kda": self.calculate_kda(participant["kills"], participant["deaths"], participant["assists"]),
+                        "cs": participant["totalMinionsKilled"] + participant["neutralMinionsKilled"],
+                        "vision": participant["visionScore"],
+                        "summoner_spell1": participant["summoner1Id"],
+                        "summoner_spell2": participant["summoner2Id"],
+                        "item0": participant["item0"],
+                        "item1": participant["item1"],
+                        "item2": participant["item2"],
+                        "item3": participant["item3"],
+                        "item4": participant["item4"],
+                        "item5": participant["item5"],
+                        "item6": participant["item6"],
+                    }
 
-                all_games_data[match_id] = match_data
-
+            match_data = {
+                "summoner_data": summoner_data,
+                "participants_data": participants_data,
+            }
+            all_matches_data[match_id] = match_data
         
-        return all_games_data
-
+        return all_matches_data
 
     # funciones auxiliares para evitar codigo redundante
     def calculate_kda(self, kills: int, deaths: int, assists: int) -> float:
@@ -338,8 +418,8 @@ class Summoner:
     
     def champion_stats(self):
         champion_stats = {}
-        games_data = self.games_data()
-        for game_data in games_data.values():
+        matches_data = self.matches_data()
+        for game_data in matches_data.values():
             champion = game_data["championName"]
             stats = champion_stats.setdefault(champion, {"kills": 0, "deaths": 0, "assists": 0, "wins": 0, "games_played": 0})
             stats["kills"] += game_data["kills"]
@@ -364,7 +444,7 @@ class Summoner:
         return sorted_champs[:top]
     
     
-    def recent_10_games_data(self) -> list[dict]:
+    def recent_10_matches_data(self) -> list[dict]:
         recent_10_games = []
         all_ranked_matches = self.all_ranked_matches_this_season()
         
@@ -434,7 +514,7 @@ class Summoner:
             
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT match_id FROM Matches WHERE summoner_puuid = ?", (self.puuid,)
+                "SELECT match_id FROM matches WHERE summoner_puuid = ?", (self.puuid,)
             )
             result = cursor.fetchall()
             match_ids = [row[0] for row in result]
