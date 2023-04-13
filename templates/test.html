@@ -20,7 +20,6 @@
     </main>
     <section>
         <h2>Summoner Statistics</h2>
-        <!-- meto un comparador por la cara para que solo aparezca la plantilla si he hecho una busqueda ya -->
         {% if summoner_name %}
         <div>
             <label>Summoner name: </label><span>{{ summoner_name }}</span>
@@ -83,12 +82,27 @@
                 <label>Champion played: </label><span>{{ champion_played_4 }}</span>
             </div>
         </section>
+        
+        
+        </section>
+        <section>
+            <h2>Champion Stats</h2>
+            <div>
+                <label>Top champion 1: </label><span>{{ top_champion_1 }}</span>
+            </div>
+            <div>
+                <label>Top champion 2: </label><span>{{ top_champion_2 }}</span>
+            </div>
+            <div>
+                <label>Top champion 3: </label><span>{{ top_champion_3 }}</span>
+            </div>
+            <div>
+                <label>Top champion 4: </label><span>{{ top_champion_4 }}</span>
+            </div>
+            <div>
+                <label>Top champion 5: </label><span>{{ top_champion_5 }}</span>
+            </div>
+        </section>
         {% endif %}
-        
-    </section>
-    <section>
-        <h2>Champion Stats</h2>
-        
-    </section>
 </body>
 </html>

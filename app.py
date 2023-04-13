@@ -14,12 +14,13 @@ app = Flask(__name__)
 def home():
     if request.method == 'POST':
         summoner_name = request.form['summoner_name']
-        api_key = "RGAPI-c9cb940a-b986-4b26-bfbf-e65f3ea60204"
+        api_key = "RGAPI-b9e033aa-3fdc-40e5-a74b-6d7512055866"
         region = "EUW1"
         
         summoner = Summoner(summoner_name, api_key, region)
         summoner_data = summoner.league_data()
         matches_data = summoner.recent_matches_data()
+        top_champs_data = summoner.top_champions_data()
         
         return render_template('test.html', 
                             summoner_name=summoner_name, 
@@ -38,9 +39,12 @@ def home():
                             champion_played_2=matches_data[2]["champion_name"],
                             champion_played_3=matches_data[3]["champion_name"],
                             champion_played_4=matches_data[4]["champion_name"],
+                            top_champion_1=top_champs_data,
                             )
     else:
         return render_template("test.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
+    

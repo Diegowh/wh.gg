@@ -242,8 +242,8 @@ class Summoner:
 
     
     def recent_matches_data(self) -> list:
-        self.update_champion_stats()
         matches_data = self._matches_data_from_db()
+        self.update_champion_stats()
 
         def match_id_key(match_data):
             return match_data["match_id"]
@@ -417,7 +417,7 @@ class Summoner:
         conn.commit()
 
         
-        
+    # TODO No he tomado en consideracion discernir entre datos de rankeds y datos de normales. Necesito modificar matches (tabla) para incluir los datos que hagan referencia al tipo de partida que es (normal, soloq, flex, aram, etc.) De esta manera luego solo utilizar los datos de las partidas que sean de solo y flex para computar los datos de champion_stats (tabla)
     def _matches_data(self, match_ids: list = None) -> dict:    
         """
         Devuelve un diccionario con los datos del summoner y los datos de todos los participantes para cada match_id.
@@ -487,14 +487,39 @@ class Summoner:
         champion_stats = {}
         matches_data = self._matches_data_from_db()
 
+
+# TODO: Necesita hacer dos solicitudes para devolver los top 5 champs. Comprobar por que
     def update_champion_stats(self):
         with self.db as conn:
             cursor = conn.cursor()
-            
-            # TODO: Actualizar datos de champion_stats con los datos de matches directamente sin necesidad de solicitud a la API.
+
+            # Crear una tabla temporal con los datos agregados de matches
             cursor.execute(
                 """
-                INSER OR REPLACE INTO champion_stats(
+                CREATE TEMPORARY TABLE temp_stats AS
+                SELECT
+                    m.summoner_puuid,
+                    m.champion_name,
+                    COUNT(*) as matches_played,
+                    SUM(m.win) as wins,
+                    COUNT(*) - SUM(m.win) as losses,
+                    ROUND(SUM(m.win) * 100.0 / COUNT(*)) as wr,
+                    ROUND((SUM(m.kills) + SUM(m.assists)) / (SUM(m.deaths) + 0.001), 2) as kda,
+                    ROUND(SUM(m.kills) * 1.0 / COUNT(*), 1) as kills,
+                    ROUND(SUM(m.deaths) * 1.0 / COUNT(*), 1) as deaths,
+                    ROUND(SUM(m.assists) * 1.0 / COUNT(*), 1) as assists,
+                    ROUND(SUM(m.cs) * 1.0 / COUNT(*)) as cs
+                FROM matches m
+                GROUP BY m.summoner_puuid, m.champion_name;
+                """
+            )
+
+            # Insertar los registros de la tabla temporal en champion_stats
+            cursor.execute(
+                """
+                INSERT INTO champion_stats
+                (summoner_puuid, champion_name, matches_played, wins, losses, wr, kda, kills, deaths, assists, cs)
+                SELECT
                     summoner_puuid,
                     champion_name,
                     matches_played,
@@ -506,15 +531,44 @@ class Summoner:
                     deaths,
                     assists,
                     cs
-                )
+                FROM temp_stats
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM champion_stats
+                    WHERE champion_stats.summoner_puuid = temp_stats.summoner_puuid AND champion_stats.champion_name = temp_stats.champion_name
+                );
                 """
             )
     
-    def top_champs_played(self, champion_stats, top=5):
+    def top_champions_data(self, top=5):
         
-        sorted_champs = sorted(champion_stats.items(), key=lambda x: x[1]['games_played'], reverse=True)
-        return sorted_champs[:top]
-    
+        with self.db as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(f"""
+                SELECT champion_name, matches_played, wr, kda, kills, deaths, assists, cs 
+                FROM champion_stats
+                WHERE summoner_puuid = '{self.puuid}'
+                ORDER BY matches_played DESC, wr DESC, kda DESC
+                LIMIT {top}
+                """
+                )
+
+            top_champions_list = cursor.fetchall()
+            
+            top_champions = []
+            for champion in top_champions_list:
+                champion_dict = {}
+                champion_dict["champion_name"] = champion[0]
+                champion_dict["matches_played"] = champion[1]
+                champion_dict["wr"] = champion[2]
+                champion_dict["kda"] = champion[3]
+                champion_dict["kills"] = champion[4]
+                champion_dict["deaths"] = champion[5]
+                champion_dict["assists"] = champion[6]
+                champion_dict["cs"] = champion[7]
+                top_champions.append(champion_dict)
+            
+            return top_champions
     
 # TODO: Code Smells and Improvements:
 
