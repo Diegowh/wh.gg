@@ -19,32 +19,70 @@ def home():
         
         summoner = Summoner(summoner_name, api_key, region)
         summoner_data = summoner.league_data()
-        matches_data = summoner.recent_matches_data()
+        recent_matches_data = summoner.recent_matches_data()
         top_champs_data = summoner.top_champions_data()
+
+
+        summoner_data_dict = {
+            "summoner_name": summoner_name,
+            "soloq": {
+                "rank": summoner_data["soloq_rank"],
+                "lp": summoner_data["soloq_lp"],
+                "wins": summoner_data["soloq_wins"],
+                "losses": summoner_data["soloq_losses"],
+                "wr": summoner_data["soloq_wr"],
+            },
+            "flex": {
+                "rank": summoner_data["flex_rank"],
+                "lp": summoner_data["flex_lp"],
+                "wins": summoner_data["flex_wins"],
+                "losses": summoner_data["flex_losses"],
+                "wr": summoner_data["flex_wr"],
+            },
+        }
+        
+        champions_played = [
+            {
+                "champion_name": champ["champion_name"],
+                "cs": champ["cs"],
+                "kda": champ["kda"],
+                "kills": champ["kills"],
+                "deaths": champ["deaths"],
+                "assists": champ["assists"],
+                "wr": champ["wr"],
+                "games_played": champ["matches_played"],
+            }
+            for champ in top_champs_data
+        ]
+        
+        recent_matches = [
+            {
+                "game_mode": match["game_mode"],
+                "game_duration": match["game_duration"],
+                "win": match["win"],
+                "champion_name": match["champion_name"],
+                "item_ids": [match["item0"], match["item1"], match["item2"], match["item3"], match["item4"], match["item5"], match["item6"]],
+                "summoner_spell_ids": [match["summoner_spell1"], match["summoner_spell2"]],
+                "kills": match["kills"],
+                "deaths": match["deaths"],
+                "assists": match["assists"],
+                "cs": match["cs"],
+                "vision": match["vision"],
+                "participant_summoner_names": [match["participant1_summoner_name"], match["participant2_summoner_name"], match["participant3_summoner_name"], match["participant4_summoner_name"], match["participant5_summoner_name"], match["participant6_summoner_name"], match["participant7_summoner_name"], match["participant8_summoner_name"], match["participant9_summoner_name"], match["participant10_summoner_name"]],
+                "participant_champion_names": [match["participant1_champion_name"], match["participant2_champion_name"], match["participant3_champion_name"], match["participant4_champion_name"], match["participant5_champion_name"], match["participant6_champion_name"], match["participant7_champion_name"], match["participant8_champion_name"], match["participant9_champion_name"], match["participant10_champion_name"]],
+            }
+            for match in recent_matches_data
+        ]
         
         return render_template('test.html', 
-                            summoner_name=summoner_name, 
-                            soloq_rank=summoner_data['soloq_rank'],
-                            soloq_lp=summoner_data['soloq_lp'],
-                            soloq_wins=summoner_data['soloq_wins'],
-                            soloq_losses=summoner_data['soloq_losses'],
-                            soloq_wr=summoner_data['soloq_wr'],
-                            flex_rank=summoner_data['flex_rank'],
-                            flex_lp=summoner_data['flex_lp'],
-                            flex_wins=summoner_data['flex_wins'],
-                            flex_losses=summoner_data['flex_losses'],
-                            flex_wr=summoner_data['flex_wr'],
-                            champion_played_0=matches_data[0]["champion_name"],
-                            champion_played_1=matches_data[1]["champion_name"],
-                            champion_played_2=matches_data[2]["champion_name"],
-                            champion_played_3=matches_data[3]["champion_name"],
-                            champion_played_4=matches_data[4]["champion_name"],
-                            top_champion_1=top_champs_data,
+                            summoner_name=summoner_name,
+                            summoner_data=summoner_data_dict,
+                            champions_played=champions_played,
+                            recent_matches=recent_matches,
                             )
     else:
         return render_template("test.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
-    
+

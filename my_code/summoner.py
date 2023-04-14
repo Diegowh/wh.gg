@@ -192,7 +192,7 @@ class Summoner:
         Intenta obtener los datos de soloq y flex desde la base de datos. Si no existen, los solicita a la API con fetch_summoner_ranks() y los guarda en la base de datos.
         Además, si han pasado más de una hora desde la última actualización, actualiza los datos de partidas y la información del invocador en la base de datos.
         '''
-        # intento obtener los datos de la base de datos
+        
         summoner_data = self._summoner_data_from_db()
         
         if summoner_data:
@@ -304,26 +304,26 @@ class Summoner:
                     "item4": row[17],
                     "item5": row[18],
                     "item6": row[19],
-                    "participant1_puuid": row[20],
-                    "participant2_puuid": row[21],
-                    "participant3_puuid": row[22],
-                    "participant4_puuid": row[23],
-                    "participant5_puuid": row[24],
-                    "participant6_puuid": row[25],
-                    "participant7_puuid": row[26],
-                    "participant8_puuid": row[27],
-                    "participant9_puuid": row[28],
-                    "participant10_puuid": row[29],
-                    "participant1_champion_id": row[30],
-                    "participant2_champion_id": row[31],
-                    "participant3_champion_id": row[32],
-                    "participant4_champion_id": row[33],
-                    "participant5_champion_id": row[34],
-                    "participant6_champion_id": row[35],
-                    "participant7_champion_id": row[36],
-                    "participant8_champion_id": row[37],
-                    "participant9_champion_id": row[38],
-                    "participant10_champion_id": row[39],
+                    "participant1_summoner_name": row[20],
+                    "participant2_summoner_name": row[21],
+                    "participant3_summoner_name": row[22],
+                    "participant4_summoner_name": row[23],
+                    "participant5_summoner_name": row[24],
+                    "participant6_summoner_name": row[25],
+                    "participant7_summoner_name": row[26],
+                    "participant8_summoner_name": row[27],
+                    "participant9_summoner_name": row[28],
+                    "participant10_summoner_name": row[29],
+                    "participant1_champion_name": row[30],
+                    "participant2_champion_name": row[31],
+                    "participant3_champion_name": row[32],
+                    "participant4_champion_name": row[33],
+                    "participant5_champion_name": row[34],
+                    "participant6_champion_name": row[35],
+                    "participant7_champion_name": row[36],
+                    "participant8_champion_name": row[37],
+                    "participant9_champion_name": row[38],
+                    "participant10_champion_name": row[39],
                     "participant1_team_id": row[40],
                     "participant2_team_id": row[41],
                     "participant3_team_id": row[42],
@@ -334,6 +334,8 @@ class Summoner:
                     "participant8_team_id": row[47],
                     "participant9_team_id": row[48],
                     "participant10_team_id": row[49],
+                    "game_mode": row[50],
+                    "game_duration": row[51],
                 }
                 matches_data.append(match_data)
                 
@@ -345,6 +347,7 @@ class Summoner:
             cursor = conn.cursor()
 
             for match_id, game_data in matches_data.items():
+                match_data = game_data["match_data"]
                 summoner_data = game_data["summoner_data"]
                 participants_data = game_data["participants_data"]
                 
@@ -355,12 +358,12 @@ class Summoner:
                         summoner_spell1, summoner_spell2, item0, item1, item2, item3, item4, item5, item6,
                         participant1_summoner_name, participant2_summoner_name, participant3_summoner_name, participant4_summoner_name, participant5_summoner_name, 
                         participant6_summoner_name, participant7_summoner_name, participant8_summoner_name, participant9_summoner_name, participant10_summoner_name, 
-                        participant1_champion_id, participant2_champion_id, participant3_champion_id, participant4_champion_id, participant5_champion_id, 
-                        participant6_champion_id, participant7_champion_id, participant8_champion_id, participant9_champion_id, participant10_champion_id, 
+                        participant1_champion_name, participant2_champion_name, participant3_champion_name, participant4_champion_name, participant5_champion_name, 
+                        participant6_champion_name, participant7_champion_name, participant8_champion_name, participant9_champion_name, participant10_champion_name, 
                         participant1_team_id, participant2_team_id, participant3_team_id, participant4_team_id, participant5_team_id, 
-                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id
+                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id, game_mode, game_duration
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         summoner_data["summoner_puuid"],
@@ -412,12 +415,13 @@ class Summoner:
                         participants_data[7]["team_id"],
                         participants_data[8]["team_id"],
                         participants_data[9]["team_id"],
+                        match_data["game_mode"],
+                        match_data["game_duration"],
                     ),
             )
         conn.commit()
 
         
-    # TODO No he tomado en consideracion discernir entre datos de rankeds y datos de normales. Necesito modificar matches (tabla) para incluir los datos que hagan referencia al tipo de partida que es (normal, soloq, flex, aram, etc.) De esta manera luego solo utilizar los datos de las partidas que sean de solo y flex para computar los datos de champion_stats (tabla)
     def _matches_data(self, match_ids: list = None) -> dict:    
         """
         Devuelve un diccionario con los datos del summoner y los datos de todos los participantes para cada match_id.
@@ -463,13 +467,18 @@ class Summoner:
                         "item4": participant["item4"],
                         "item5": participant["item5"],
                         "item6": participant["item6"],
+                        
                     }
-
             match_data = {
+                "game_mode": match_request["info"]["gameMode"],
+                "game_duration": match_request["info"]["gameDuration"]
+            }
+            all_match_data= {
+                "match_data": match_data,
                 "summoner_data": summoner_data,
                 "participants_data": participants_data,
             }
-            all_matches_data[match_id] = match_data
+            all_matches_data[match_id] = all_match_data
         
         return all_matches_data
 
@@ -482,10 +491,6 @@ class Summoner:
     def calculate_average(self, value: int, total_games: int) -> float:
         return round(value / total_games, 1)
     
-    
-    def champion_stats(self):
-        champion_stats = {}
-        matches_data = self._matches_data_from_db()
 
 
 # TODO: Necesita hacer dos solicitudes para devolver los top 5 champs. Comprobar por que
@@ -510,6 +515,7 @@ class Summoner:
                     ROUND(SUM(m.assists) * 1.0 / COUNT(*), 1) as assists,
                     ROUND(SUM(m.cs) * 1.0 / COUNT(*)) as cs
                 FROM matches m
+                WHERE m.game_mode = 'CLASSIC'
                 GROUP BY m.summoner_puuid, m.champion_name;
                 """
             )
@@ -569,6 +575,9 @@ class Summoner:
                 top_champions.append(champion_dict)
             
             return top_champions
+        
+        
+# TODO Hay un error conocido que incluye los datos de todas las partidas jugadas en modo CLASSIC (normal, soloq, flex) en champions_data.
     
 # TODO: Code Smells and Improvements:
 
