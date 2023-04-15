@@ -2,7 +2,9 @@ from flask import Flask, render_template, request
 import os
 from my_code.summoner import Summoner
 from urllib.parse import quote
+from dotenv import load_dotenv
 
+load_dotenv()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -14,7 +16,7 @@ app = Flask(__name__)
 def home():
     if request.method == 'POST':
         summoner_name = request.form['summoner_name']
-        api_key = "RGAPI-b9e033aa-3fdc-40e5-a74b-6d7512055866"
+        api_key = os.getenv("API_KEY")
         region = "EUW1"
         
         summoner = Summoner(summoner_name, api_key, region)
