@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import os
-from my_code.summoner import Summoner
+from src.summoner import Summoner
 from urllib.parse import quote
 from dotenv import load_dotenv
 
