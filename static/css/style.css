@@ -1349,7 +1349,7 @@ h6 {
 }
 
 .item-icon:not(:empty) {
-  display: inline-block; /* mostrar los elementos con imagen */
+  display: inline-block;
 }
 
 .game-runes,
@@ -1399,4 +1399,51 @@ h6 {
 
 .center-text {
   text-align: center;
+}
+
+.post-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  margin-right: 15px;
+}
+
+.champ-img {
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  margin-right: 5px;
+}
+
+.champ-name {
+  margin-left: -20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.row {
+  display: flex;
+  vertical-align: middle;
+}
+
+.col {
+  flex: 1;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+.stats-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card-body .row {
+  display: flex;
+  align-items: center;
 }
