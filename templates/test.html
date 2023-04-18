@@ -53,7 +53,7 @@
 
     <div class="search-bar">
       <form class="search-form d-flex align-items-center" method="POST" action="#">
-        <input type="text" name="query" placeholder="Search" title="Enter search keyword">
+        <input type="text" name="summoner_name" placeholder="Search" title="Enter summoner name">
         <button type="submit" title="Search"><i class="bi bi-search"></i></button>
       </form>
     </div><!-- End Search Bar -->
@@ -132,8 +132,19 @@
                       <img src="static/img/profileIcon4536.webp" alt="" class="img-icon">
                     </div>
                     <div class="ps-3">
-                      <h6>wallhack</h6>
-                      <button class="update-button">Update</button>
+                      <h6>{{ summoner_name }}</h6>
+                      <button class="update-button" id="update-button">Update</button>
+                      <script>
+                      document.addEventListener('DOMContentLoaded', function () {
+                        const updateButton = document.getElementById('update-button');
+                        const searchForm = document.querySelector('.search-form');
+                      
+                        updateButton.addEventListener('click', function (event) {
+                          event.preventDefault();
+                          searchForm.submit();
+                        });
+                      });
+                      </script>
 
                     </div>
                   </div>
