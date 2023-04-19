@@ -437,7 +437,7 @@ h6 {
 @media (max-width: 1199px) {
   .header .search-bar {
     position: fixed;
-    top: 50px;
+    top: 0px;
     left: 0;
     right: 0;
     padding: 20px;
@@ -445,15 +445,15 @@ h6 {
     background: white;
     z-index: 9999;
     transition: 0.3s;
-    visibility: hidden;
-    opacity: 0;
+    max-width: 360px;
+    margin: 0 auto;
   }
 
-  .header .search-bar-show {
+  /* .header .search-bar-show {
     top: 60px;
     visibility: visible;
     opacity: 1;
-  }
+  } */
 }
 
 .header .search-form {

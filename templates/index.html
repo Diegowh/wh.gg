@@ -49,17 +49,14 @@
         <span class="d-none d-lg-block">wh.gg</span>
       </a>
       <i class="bi bi-list toggle-sidebar-btn"></i>
+      
+      <div class="search-bar">
+        <form class="search-form d-flex align-items-center" method="POST" action="#">
+          <input type="text" name="summoner_name" placeholder="Search" title="Enter summoner name">
+          <button type="submit" title="Search"><i class="bi bi-search"></i></button>
+        </form>
+      </div><!-- End Search Bar -->
     </div><!-- End Logo -->
-
-    <div class="search-bar">
-      <form class="search-form d-flex align-items-center" method="POST" action="#">
-        <input type="text" name="summoner_name" placeholder="Search" title="Enter summoner name">
-        <button type="submit" title="Search"><i class="bi bi-search"></i></button>
-      </form>
-    </div><!-- End Search Bar -->
-
-    
-
   </header><!-- End Header -->
 
   <!-- ======= Sidebar ======= -->
@@ -68,28 +65,28 @@
     <ul class="sidebar-nav" id="sidebar-nav">
 
       <li class="nav-item">
-        <a class="nav-link " href="index.html">
-          <i class="bi bi-grid"></i>
+        <a class="nav-link " href="">
+          <i class="bi bi-house"></i>
           <span>Home</span>
         </a>
       </li><!-- End Dashboard Nav -->
       <li class="nav-item">
-        <a class="nav-link collapsed" href="users-profile.html">
-          <i class="bi bi-person"></i>
+        <a class="nav-link collapsed" href="">
+          <i class="bi bi-list-stars"></i>
           <span>Tier List</span>
         </a>
       </li><!-- End Profile Page Nav -->
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="">
-          <i class="bi bi-question-circle"></i>
+          <i class="bi bi-emoji-sunglasses"></i>
           <span>Champions</span>
         </a>
       </li><!-- End F.A.Q Page Nav -->
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="">
-          <i class="bi bi-envelope"></i>
+          <i class="bi bi-person-lines-fill"></i>
           <span>Leaderboards</span>
         </a>
       </li><!-- End Contact Page Nav -->
@@ -220,17 +217,18 @@
                       </div>
                       <div class="game-score">
                         <span class="kda">{{ match.kills }} / {{ match.deaths }} / {{ match.assists }}</span>
-                        <span class="kda-ratio">{{ (match.kills + match.assists) / match.deaths if match.deaths > 0 else match.kills + match.assists }}:1 KDA</span>
+                        <span class="kda-ratio">{{ ((match.kills + match.assists) / match.deaths if match.deaths > 0 else match.kills + match.assists)|round(2) }}:1 KDA</span>
+
                         <span class="cs cs-center">{{ match.cs }} CS</span>
                       </div>
                       <div class="game-items">
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[0] }}.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[1] }}.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[2] }}.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[3] }}.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[4] }}.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[5] }}.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[6] }}.png" alt=""></div>
+                        {% for item_id in match.item_ids %}
+                          <div class="item-icon">
+                            {% if item_id != 0 %}
+                              <img src="static/img/item/{{ item_id }}.png" alt="" class="item-icon">
+                            {% endif %}
+                          </div>
+                        {% endfor %}
                       </div>
                       <span class="game-result{% if not match.win %} defeat{% endif %}">{{ 'Victory' if match.win else 'Defeat' }}</span>
                     </div>
@@ -243,25 +241,21 @@
                         {% endfor %}
                       </div>
                       <div class="participant-column">
-                        <span class="participant-name">Participant 1</span>
-                        <span class="participant-name">Participant 2</span>
-                        <span class="participant-name">Participant 3</span>
-                        <span class="participant-name">Participant 4</span>
-                        <span class="participant-name">Participant 5</span>
+                        {% for participant_name in match.participant_summoner_names[:5] %}
+                        <span class="participant-name">{{ participant_name }}</span>
+                        {% endfor %}
                       </div>
                       <div class="participant-column pl-100">
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
+                        {% for champ_name in match.participant_champion_names[5:] %}
+                        <div class="participant-icon">
+                          <img src="static/img/champion/{{ champ_name }}.png" alt="{{ champ_name }}" class="participant-icon">
+                        </div>
+                        {% endfor %}
                       </div>
                       <div class="participant-column">
-                        <span class="participant-name">Participant 6</span>
-                        <span class="participant-name">Participant 7</span>
-                        <span class="participant-name">Participant 8</span>
-                        <span class="participant-name">Participant 9</span>
-                        <span class="participant-name">Participant 10</span>
+                        {% for participant_name in match.participant_summoner_names[5:] %}
+                        <span class="participant-name">{{ participant_name }}</span>
+                        {% endfor %}
                       </div>
                     </div>
                   </div>
@@ -346,107 +340,34 @@
 
             </div>
           </div><!-- End Roles chart-->
-
           <!-- Champion Stats -->
           <div class="card">
             <div class="card-body pb-0">
               <h5 class="card-title ">Champion Stats</h5>
-              <hr>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col">
-                    <img class="champ-img" src="static/img/champion/{{ champions_played[0].champion_name }}.png" alt="">
+              {% if champions_played %}
+                {% for champion in champions_played %}
+                  <hr>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col">
+                        <img class="champ-img" src="static/img/champion/{{ champion.champion_name }}.png" alt="">
+                      </div>
+                      <div class="col">
+                        <span class="champ-name">{{ champion.champion_name }}</span>
+                      </div>
+                      <div class="col stats-wrapper">
+                        <span class="kda1">{{ champion.kda }} KDA</span>
+                        <span class="kda-ratio">{{ champion.kills }} {{ champion.deaths }} {{ champion.assists }}</span>
+                      </div>
+                      <div class="col stats-wrapper">
+                        <span class="win-rate">{{ champion.wr }}%</span>
+                        <span class="games-played">{{ champion.games_played }} games</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="col">
-                    <span class="champ-name">{{ champions_played[0].champion_name }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="kda1">{{ champions_played[0].kda }} KDA</span>
-                    <span class="kda-ratio">{{ champions_played[0].kills }} {{ champions_played[0].deaths }} {{ champions_played[0].assists }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="win-rate">{{ champions_played[0].wr }}%</span>
-                    <span class="games-played">{{ champions_played[0].games_played }} games</span>
-                  </div>
-                </div>
-              </div>
-              <hr>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col">
-                    <img class="champ-img" src="static/img/champion/{{ champions_played[1].champion_name }}.png" alt="">
-                  </div>
-                  <div class="col">
-                    <span class="champ-name">{{ champions_played[1].champion_name }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="kda1">{{ champions_played[1].kda }} KDA</span>
-                    <span class="kda-ratio">{{ champions_played[1].kills }} {{ champions_played[1].deaths }} {{ champions_played[1].assists }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="win-rate">{{ champions_played[1].wr }}%</span>
-                    <span class="games-played">{{ champions_played[1].games_played }} games</span>
-                  </div>
-                </div>
-              </div>
-              <hr>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col">
-                    <img class="champ-img" src="static/img/champion/{{ champions_played[2].champion_name }}.png" alt="">
-                  </div>
-                  <div class="col">
-                    <span class="champ-name">{{ champions_played[2].champion_name }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="kda1">{{ champions_played[2].kda }} KDA</span>
-                    <span class="kda-ratio">{{ champions_played[2].kills }} {{ champions_played[2].deaths }} {{ champions_played[2].assists }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="win-rate">{{ champions_played[2].wr }}%</span>
-                    <span class="games-played">{{ champions_played[2].games_played }} games</span>
-                  </div>
-                </div>
-              </div>
-              <hr>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col">
-                    <img class="champ-img" src="static/img/champion/{{ champions_played[3].champion_name }}.png" alt="">
-                  </div>
-                  <div class="col">
-                    <span class="champ-name">{{ champions_played[3].champion_name }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="kda1">{{ champions_played[3].kda }} KDA</span>
-                    <span class="kda-ratio">{{ champions_played[3].kills }} {{ champions_played[3].deaths }} {{ champions_played[3].assists }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="win-rate">{{ champions_played[3].wr }}%</span>
-                    <span class="games-played">{{ champions_played[3].games_played }} games</span>
-                  </div>
-                </div>
-              </div>
-              <hr>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col">
-                    <img class="champ-img" src="static/img/champion/{{ champions_played[4].champion_name }}.png" alt="">
-                  </div>
-                  <div class="col">
-                    <span class="champ-name">{{ champions_played[4].champion_name }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="kda1">{{ champions_played[4].kda }} KDA</span>
-                    <span class="kda-ratio">{{ champions_played[4].kills }} {{ champions_played[4].deaths }} {{ champions_played[4].assists }}</span>
-                  </div>
-                  <div class="col stats-wrapper">
-                    <span class="win-rate">{{ champions_played[4].wr }}%</span>
-                    <span class="games-played">{{ champions_played[4].games_played }} games</span>
-                  </div>
-                </div>
-              </div>
-              <hr>
+                {% endfor %}
+                <hr>
+              {% endif %}
             </div>
           </div><!-- End Champion Stats-->
 
