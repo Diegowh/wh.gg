@@ -75,9 +75,9 @@ def home():
                 "summoner_spell_ids": [
                     match["summoner_spell1"], 
                     match["summoner_spell2"]],
-                "kills": match["kills"],
-                "deaths": match["deaths"],
-                "assists": match["assists"],
+                "kills": int(match["kills"]),
+                "deaths": int(match["deaths"]),
+                "assists": int(match["assists"]),
                 "cs": match["cs"],
                 "vision": match["vision"],
                 "participant_summoner_names": [match["participant1_summoner_name"], match["participant2_summoner_name"], match["participant3_summoner_name"], match["participant4_summoner_name"], match["participant5_summoner_name"], match["participant6_summoner_name"], match["participant7_summoner_name"], match["participant8_summoner_name"], match["participant9_summoner_name"], match["participant10_summoner_name"]],
@@ -86,14 +86,14 @@ def home():
             for match in recent_matches_data
         ]
         
-        return render_template('test.html', 
+        return render_template('index.html', 
                             summoner_name=summoner_name,
                             summoner_data=summoner_data,
                             champions_played=champions_played,
                             recent_matches=recent_matches,
                             )
     else:
-        return render_template("test.html")
+        return render_template("index.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
