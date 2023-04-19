@@ -230,18 +230,18 @@ class Summoner:
             return data
     
     
-    def total_ranked_games_played_per_queue(self) -> Tuple[int, int]:
+    def total_ranked_games_played_per_queue(self) -> tuple:
         league_entries = self.league_entries()
         soloq_games_played = 0
         flex_games_played = 0
-        
+
         for entry in league_entries:
             if entry["queueType"] == "RANKED_SOLO_5x5":
                 soloq_games_played = entry["wins"] + entry["losses"]
             elif entry["queueType"] == "RANKED_FLEX_SR":
                 flex_games_played = entry["wins"] + entry["losses"]
-                
-        return soloq_games_played, flex_games_played
+
+        return (soloq_games_played, flex_games_played)
     
     
     # TODO  Revisar CHAMPION_STATS porque ahora esta teniendo en cuenta todos los match_ids, si quiero que sea de ranked hay que incluir una condicion para filtrar match ids.
@@ -526,7 +526,7 @@ class Summoner:
         with self.db as conn:
             cursor = conn.cursor()
 
-            # Crear una tabla temporal con los datos agregados de matches
+            # Crea una tabla temporal con los datos agregados de matches
             cursor.execute(
                 """
                 CREATE TEMPORARY TABLE temp_stats AS
@@ -543,7 +543,7 @@ class Summoner:
                     ROUND(SUM(m.assists) * 1.0 / COUNT(*), 1) as assists,
                     ROUND(SUM(m.cs) * 1.0 / COUNT(*)) as cs
                 FROM matches m
-                WHERE m.game_mode = 'CLASSIC'
+                WHERE (m.queue_id = '420' OR m.queue_id = '440')
                 GROUP BY m.summoner_puuid, m.champion_name;
                 """
             )
