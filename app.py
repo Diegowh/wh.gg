@@ -25,17 +25,17 @@ def home():
         top_champs_data = summoner.top_champions_data()
 
 
-        summoner_data_dict = {
+        summoner_data = {
             "summoner_name": summoner_name,
             "soloq": {
-                "rank": summoner_data["soloq_rank"],
+                "rank": summoner_data["soloq_rank"].title(),
                 "lp": summoner_data["soloq_lp"],
                 "wins": summoner_data["soloq_wins"],
                 "losses": summoner_data["soloq_losses"],
                 "wr": summoner_data["soloq_wr"],
             },
             "flex": {
-                "rank": summoner_data["flex_rank"],
+                "rank": summoner_data["flex_rank"].title(),
                 "lp": summoner_data["flex_lp"],
                 "wins": summoner_data["flex_wins"],
                 "losses": summoner_data["flex_losses"],
@@ -63,8 +63,18 @@ def home():
                 "game_duration": match["game_duration"],
                 "win": match["win"],
                 "champion_name": match["champion_name"],
-                "item_ids": [match["item0"], match["item1"], match["item2"], match["item3"], match["item4"], match["item5"], match["item6"]],
-                "summoner_spell_ids": [match["summoner_spell1"], match["summoner_spell2"]],
+                "item_ids": [
+                    match["item0"], 
+                    match["item1"], 
+                    match["item2"], 
+                    match["item3"], 
+                    match["item4"], 
+                    match["item5"], 
+                    match["item6"]
+                    ],
+                "summoner_spell_ids": [
+                    match["summoner_spell1"], 
+                    match["summoner_spell2"]],
                 "kills": match["kills"],
                 "deaths": match["deaths"],
                 "assists": match["assists"],
@@ -78,7 +88,7 @@ def home():
         
         return render_template('test.html', 
                             summoner_name=summoner_name,
-                            summoner_data=summoner_data_dict,
+                            summoner_data=summoner_data,
                             champions_played=champions_played,
                             recent_matches=recent_matches,
                             )

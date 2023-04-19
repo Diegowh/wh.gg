@@ -98,6 +98,7 @@
 
   </aside><!-- End Sidebar-->
 
+  {% if summoner_name %}
   <main id="main" class="main">
 
     <div class="pagetitle">
@@ -138,9 +139,11 @@
                       document.addEventListener('DOMContentLoaded', function () {
                         const updateButton = document.getElementById('update-button');
                         const searchForm = document.querySelector('.search-form');
+                        const searchInput = document.querySelector('input[name="query"]')
                       
                         updateButton.addEventListener('click', function (event) {
                           event.preventDefault();
+                          searchInput.value = '{{ summoner_name }}'
                           searchForm.submit();
                         });
                       });
@@ -163,11 +166,11 @@
 
                   <div class="d-flex align-items-center">
                     <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                      <img src="static/img/master.webp" alt="master" class="img-icon">
+                      <img src="static/img/{{ summoner_data.soloq.rank.split()[0] }}.webp" alt="master" class="img-icon">
                     </div>
                     <div class="ps-3">
-                      <h6>Master</h6>
-                      <span class="text-success small pt-1 fw-bold">574</span> <span class="text-muted small pt-2 ps-1">LP</span>
+                      <h6>{{ summoner_data.soloq.rank }}</h6>
+                      <span class="text-success small pt-1 fw-bold">{{ summoner_data.soloq.lp }}</span> <span class="text-muted small pt-2 ps-1">LP</span>
 
                     </div>
                   </div>
@@ -184,11 +187,11 @@
 
                   <div class="d-flex align-items-center">
                     <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                      <img src="static/img/diamond.webp" alt="master" class="img-icon">
+                      <img src="static/img/{{ summoner_data.flex.rank.split()[0] }}.webp" alt="master" class="img-icon">
                     </div>
                     <div class="ps-3">
-                      <h6>Diamond</h6>
-                      <span class="text-success small pt-1 fw-bold">99</span> <span class="text-muted small pt-2 ps-1">LP</span>
+                      <h6>{{ summoner_data.flex.rank }}</h6>
+                      <span class="text-success small pt-1 fw-bold">{{ summoner_data.flex.lp }}</span> <span class="text-muted small pt-2 ps-1">LP</span>
 
                     </div>
                   </div>
@@ -206,37 +209,38 @@
                   <h5 class="card-title center-text">Recent Games</h5>
 
                   <!-- Cards -->
+                  {% for match in recent_matches %}
                   <div class="card">
                     <div class="card-header">
-                      <span class="game-type">Ranked Solo</span>
-                      <img src="static/img/champion/Hecarim.png" alt="Champion icon" class="champ-icon">
+                      <span class="game-type">{{ match.game_mode }}</span>
+                      <img src="static/img/champion/{{ match.champion_name }}.png" alt="Champion icon" class="champ-icon">
                       <div class="game-runes">
-                        <img src="static/img/SummonerSmite.webp" alt="spell-1" class="rune-icon">
-                        <img src="static/img/SummonerHaste.webp" alt="spell-2" class="rune-icon">
+                        <img src="static/img/spells/{{ match.summoner_spell_ids[0] }}.png" alt="spell-1" class="rune-icon">
+                        <img src="static/img/spells/{{ match.summoner_spell_ids[1] }}.png" alt="spell-2" class="rune-icon">
                       </div>
                       <div class="game-score">
-                        <span class="kda">10 / 2 / 8</span>
-                        <span class="kda-ratio">9.0:1 KDA</span>
-                        <span class="cs cs-center">234 CS</span>
+                        <span class="kda">{{ match.kills }} / {{ match.deaths }} / {{ match.assists }}</span>
+                        <span class="kda-ratio">{{ (match.kills + match.assists) / match.deaths if match.deaths > 0 else match.kills + match.assists }}:1 KDA</span>
+                        <span class="cs cs-center">{{ match.cs }} CS</span>
                       </div>
                       <div class="game-items">
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/3047.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/3074.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/3071.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/7002.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/6333.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/3161.png" alt=""></div>
-                        <div class="item-icon"><img class= "item-icon"src="static/img/item/3364.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[0] }}.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[1] }}.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[2] }}.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[3] }}.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[4] }}.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[5] }}.png" alt=""></div>
+                        <div class="item-icon"><img class= "item-icon"src="static/img/item/{{ match.item_ids[6] }}.png" alt=""></div>
                       </div>
-                      <span class="game-result">Victory</span>
+                      <span class="game-result{% if not match.win %} defeat{% endif %}">{{ 'Victory' if match.win else 'Defeat' }}</span>
                     </div>
                     <div class="card-header justify-content-center">
                       <div class="participant-column">
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
-                        <div class="participant-icon"></div>
+                        {% for champ_name in match.participant_champion_names[:5] %}
+                        <div class="participant-icon">
+                          <img src="static/img/champion/{{ champ_name }}.png" alt="{{ champ_name }}" class="participant-icon">
+                        </div>
+                        {% endfor %}
                       </div>
                       <div class="participant-column">
                         <span class="participant-name">Participant 1</span>
@@ -261,8 +265,8 @@
                       </div>
                     </div>
                   </div>
+                  {% endfor %}
                 </div>
-
               </div>
             </div><!-- End Recent Games -->
 
@@ -347,21 +351,22 @@
           <div class="card">
             <div class="card-body pb-0">
               <h5 class="card-title ">Champion Stats</h5>
+              <hr>
               <div class="card-body">
                 <div class="row">
                   <div class="col">
-                    <img class="champ-img" src="static/img/champion/Diana.png" alt="">
+                    <img class="champ-img" src="static/img/champion/{{ champions_played[0].champion_name }}.png" alt="">
                   </div>
                   <div class="col">
-                    <span class="champ-name">Diana</span>
+                    <span class="champ-name">{{ champions_played[0].champion_name }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="kda1">2.93 KDA</span>
-                    <span class="kda-ratio">9.0 5 12.4</span>
+                    <span class="kda1">{{ champions_played[0].kda }} KDA</span>
+                    <span class="kda-ratio">{{ champions_played[0].kills }} {{ champions_played[0].deaths }} {{ champions_played[0].assists }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="win-rate">99%</span>
-                    <span class="games-played">123 games</span>
+                    <span class="win-rate">{{ champions_played[0].wr }}%</span>
+                    <span class="games-played">{{ champions_played[0].games_played }} games</span>
                   </div>
                 </div>
               </div>
@@ -369,18 +374,18 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col">
-                    <img class="champ-img" src="static/img/champion/Diana.png" alt="">
+                    <img class="champ-img" src="static/img/champion/{{ champions_played[1].champion_name }}.png" alt="">
                   </div>
                   <div class="col">
-                    <span class="champ-name">Diana</span>
+                    <span class="champ-name">{{ champions_played[1].champion_name }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="kda1">2.93 KDA</span>
-                    <span class="kda-ratio">9.0 5 12.4</span>
+                    <span class="kda1">{{ champions_played[1].kda }} KDA</span>
+                    <span class="kda-ratio">{{ champions_played[1].kills }} {{ champions_played[1].deaths }} {{ champions_played[1].assists }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="win-rate">99%</span>
-                    <span class="games-played">123 games</span>
+                    <span class="win-rate">{{ champions_played[1].wr }}%</span>
+                    <span class="games-played">{{ champions_played[1].games_played }} games</span>
                   </div>
                 </div>
               </div>
@@ -388,18 +393,18 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col">
-                    <img class="champ-img" src="static/img/champion/Diana.png" alt="">
+                    <img class="champ-img" src="static/img/champion/{{ champions_played[2].champion_name }}.png" alt="">
                   </div>
                   <div class="col">
-                    <span class="champ-name">Diana</span>
+                    <span class="champ-name">{{ champions_played[2].champion_name }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="kda1">2.93 KDA</span>
-                    <span class="kda-ratio">9.0 5 12.4</span>
+                    <span class="kda1">{{ champions_played[2].kda }} KDA</span>
+                    <span class="kda-ratio">{{ champions_played[2].kills }} {{ champions_played[2].deaths }} {{ champions_played[2].assists }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="win-rate">99%</span>
-                    <span class="games-played">123 games</span>
+                    <span class="win-rate">{{ champions_played[2].wr }}%</span>
+                    <span class="games-played">{{ champions_played[2].games_played }} games</span>
                   </div>
                 </div>
               </div>
@@ -407,18 +412,18 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col">
-                    <img class="champ-img" src="static/img/champion/Diana.png" alt="">
+                    <img class="champ-img" src="static/img/champion/{{ champions_played[3].champion_name }}.png" alt="">
                   </div>
                   <div class="col">
-                    <span class="champ-name">Diana</span>
+                    <span class="champ-name">{{ champions_played[3].champion_name }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="kda1">2.93 KDA</span>
-                    <span class="kda-ratio">9.0 5 12.4</span>
+                    <span class="kda1">{{ champions_played[3].kda }} KDA</span>
+                    <span class="kda-ratio">{{ champions_played[3].kills }} {{ champions_played[3].deaths }} {{ champions_played[3].assists }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="win-rate">99%</span>
-                    <span class="games-played">123 games</span>
+                    <span class="win-rate">{{ champions_played[3].wr }}%</span>
+                    <span class="games-played">{{ champions_played[3].games_played }} games</span>
                   </div>
                 </div>
               </div>
@@ -426,31 +431,32 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col">
-                    <img class="champ-img" src="static/img/champion/Diana.png" alt="">
+                    <img class="champ-img" src="static/img/champion/{{ champions_played[4].champion_name }}.png" alt="">
                   </div>
                   <div class="col">
-                    <span class="champ-name">Diana</span>
+                    <span class="champ-name">{{ champions_played[4].champion_name }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="kda1">2.93 KDA</span>
-                    <span class="kda-ratio">9.0 5 12.4</span>
+                    <span class="kda1">{{ champions_played[4].kda }} KDA</span>
+                    <span class="kda-ratio">{{ champions_played[4].kills }} {{ champions_played[4].deaths }} {{ champions_played[4].assists }}</span>
                   </div>
                   <div class="col stats-wrapper">
-                    <span class="win-rate">99%</span>
-                    <span class="games-played">123 games</span>
+                    <span class="win-rate">{{ champions_played[4].wr }}%</span>
+                    <span class="games-played">{{ champions_played[4].games_played }} games</span>
                   </div>
                 </div>
               </div>
+              <hr>
             </div>
           </div><!-- End Champion Stats-->
 
         </div><!-- End Right side columns -->
-
+        
       </div>
     </section>
-
+    
   </main><!-- End #main -->
-
+  
   <!-- ======= Footer ======= -->
   <footer id="footer" class="footer">
     <div class="copyright">
@@ -464,7 +470,8 @@
       Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
     </div>
   </footer><!-- End Footer -->
-
+  {% endif %}
+  
   <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
   <!-- Vendor JS Files -->

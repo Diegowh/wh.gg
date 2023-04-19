@@ -68,4 +68,3 @@ config.ini
 *.log
 
 # database
-data.db

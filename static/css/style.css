@@ -1292,6 +1292,11 @@ h6 {
   margin-left: auto;
   color: green;
   margin-right: 10px;
+  font-weight: bold;
+}
+
+.game-result.defeat {
+  color: red;
 }
 
 .game-info {
