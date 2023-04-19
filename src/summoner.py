@@ -181,11 +181,10 @@ class Summoner:
             "flex_wins": 0,
             "flex_losses": 0,
             "flex_wr": 0,
-            "profile_icon_id": self.summoner_data_from_db()["profile_icon_id"],
-            "summoner_level": self.summoner_data_from_db()["summoner_level"],
+            "profile_icon_id": self.summoner_icon_id(),
+            "summoner_level": self.summoner_level(),
         }
         
-    
         # Itero sobre las 2 entradas (soloq y flex) porque los retrasados de riot las devuelven en orden aleatorio en cada solicitud
         for entry in league_entries:
             win_rate = int(round((entry['wins'] / (entry['wins'] + entry['losses'])) * 100))
@@ -245,27 +244,29 @@ class Summoner:
         return soloq_games_played, flex_games_played
     
     
-    def all_ranked_matches_this_season(self) -> list:
+    # TODO  Revisar CHAMPION_STATS porque ahora esta teniendo en cuenta todos los match_ids, si quiero que sea de ranked hay que incluir una condicion para filtrar match ids.
+    def all_match_ids_this_season(self) -> list:
         '''
         Devuelve todos los match id de las partidas jugadas.
         '''
-        soloq_games_played, flex_games_played = self.total_ranked_games_played_per_queue()
-        games_played = sum([soloq_games_played, flex_games_played])
-        
+        MAX_GAMES = 5000
         match_ids = []
         
-        for start_index in range(0, games_played, 100):
+        for start_index in range(0, MAX_GAMES, 100):
             endpoint = f"match/v5/matches/by-puuid/{self.puuid}/ids"
             params = {
                 "startTime": SEASON_START_TIMESTAMP,
                 "start": start_index,
-                "count": int(min(100, games_played - start_index))
+                "count": int(min(100, MAX_GAMES - start_index))
             }
             current_match_ids = self._get(endpoint, general_region=True, **params)
+            
+            if not current_match_ids:
+                break
+            
             match_ids += current_match_ids
-
+            
         return match_ids
-
     
     def recent_matches_data(self) -> list:
         matches_data = self._matches_data_from_db()
@@ -292,14 +293,14 @@ class Summoner:
             
             if last_match_id:
                 recent_matches = [
-                    match_id for match_id in self.all_ranked_matches_this_season() if match_id > last_match_id[0]
+                    match_id for match_id in self.all_match_ids_this_season() if match_id > last_match_id[0]
                 ]
                 if recent_matches:
                     new_matches_data = self._matches_data(recent_matches)
                     self.save_matches_data_to_db(new_matches_data)
             
             else:
-                all_matches = self.all_ranked_matches_this_season()
+                all_matches = self.all_match_ids_this_season()
                 if all_matches:
                     all_matches_data = self._matches_data(all_matches)
                     self.save_matches_data_to_db(all_matches_data)
@@ -455,7 +456,7 @@ class Summoner:
         Devuelve un diccionario con los datos del summoner y los datos de todos los participantes para cada match_id.
         """
         if match_ids is None:
-            match_ids = self.all_ranked_matches_this_season()
+            match_ids = self.all_match_ids_this_season()
             
         all_matches_data = {}
         
