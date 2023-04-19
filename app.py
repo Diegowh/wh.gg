@@ -12,6 +12,21 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///{}'.format(os.path.join(basedir, 'data.db')
 
 app = Flask(__name__)
 
+def get_game_type(queue_id):
+    game_types = {
+        400: "Normal Draft",
+        420: "Ranked Solo",
+        430: "Normal Blind",
+        440: "Ranked Flex",
+        450: "ARAM",
+        700: "CLASH",
+        830: "Co-op vs AI",
+        840: "Co-op vs AI",
+        850: "Co-op vs AI",
+        900: "URF",
+    }
+    return game_types.get(queue_id, "Unknown")
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
@@ -27,6 +42,8 @@ def home():
 
         summoner_data = {
             "summoner_name": summoner_name,
+            "profile_icon_id": summoner_data["profile_icon_id"],
+            "summoner_level": summoner_data["summoner_level"],
             "soloq": {
                 "rank": summoner_data["soloq_rank"].title(),
                 "lp": summoner_data["soloq_lp"],
@@ -59,7 +76,9 @@ def home():
         
         recent_matches = [
             {
+                "game_type": get_game_type(match["queue_id"]),
                 "game_mode": match["game_mode"],
+                "queue_id": match["queue_id"],
                 "game_duration": match["game_duration"],
                 "win": match["win"],
                 "champion_name": match["champion_name"],
@@ -81,7 +100,8 @@ def home():
                 "cs": match["cs"],
                 "vision": match["vision"],
                 "participant_summoner_names": [match["participant1_summoner_name"], match["participant2_summoner_name"], match["participant3_summoner_name"], match["participant4_summoner_name"], match["participant5_summoner_name"], match["participant6_summoner_name"], match["participant7_summoner_name"], match["participant8_summoner_name"], match["participant9_summoner_name"], match["participant10_summoner_name"]],
-                "participant_champion_names": [match["participant1_champion_name"], match["participant2_champion_name"], match["participant3_champion_name"], match["participant4_champion_name"], match["participant5_champion_name"], match["participant6_champion_name"], match["participant7_champion_name"], match["participant8_champion_name"], match["participant9_champion_name"], match["participant10_champion_name"]],
+                "participant_champion_names": [match["participant1_champion_name"], match["participant2_champion_name"], match["participant3_champion_name"], match["participant4_champion_name"], match["participant5_champion_name"], match["participant6_champion_name"], match["participant7_champion_name"], match["participant8_champion_name"], match["participant9_champion_name"], match["participant10_champion_name"]
+                ],
             }
             for match in recent_matches_data
         ]

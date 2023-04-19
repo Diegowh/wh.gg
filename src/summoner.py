@@ -21,20 +21,35 @@ class Summoner:
         self.id = self.summoner_id()
         
         self.db = sqlite3.connect("data.db")
-        self.puuid = self.summoner_puuid_from_db()
-        if self.puuid is None:
+        
+        if self.summoner_data_from_db() is not None:
+            self.puuid = self.summoner_data_from_db()["summoner_puuid"]
+            self.icon_id = self.summoner_data_from_db()["profile_icon_id"]
+            self.level = self.summoner_data_from_db()["summoner_level"]
+        else:
             self.puuid = self.summoner_puuid()
+            self.icon_id = self.summoner_icon_id()
+            self.level = self.summoner_level()
         
         
-    def summoner_puuid_from_db(self) -> str:
+    def summoner_data_from_db(self) -> dict:
         with self.db as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT summoner_puuid FROM summoners WHERE summoner_name = ?",
+                "SELECT summoner_puuid, profile_icon_id, summoner_level FROM summoners WHERE summoner_name = ?",
                 (self.summoner_name,),
             )
             result = cursor.fetchone()
-            return result[0] if result is not None else None
+            
+            if result is not None:
+                data = {
+                    "summoner_puuid": result[0],
+                    "profile_icon_id": result[1],
+                    "summoner_level": result[2],
+                }
+                return data
+            else:
+                return None
     
     
     def save_or_update_summoner_to_db(self, league_data: dict) -> None:
@@ -58,22 +73,21 @@ class Summoner:
                         UPDATE summoners SET
                         summoner_id = ?, summoner_name = ?, region = ?, last_update = ?,
                         soloq_rank = ?, soloq_lp = ?, soloq_wins = ?, soloq_losses = ?, soloq_wr = ?,
-                        flex_rank = ?, flex_lp = ?, flex_wins = ?, flex_losses = ?, flex_wr = ?
+                        flex_rank = ?, flex_lp = ?, flex_wins = ?, flex_losses = ?, flex_wr = ?, profile_icon_id = ?, summoner_level = ?
                         WHERE summoner_puuid = ?
                         """,
                         (self.id, self.summoner_name, self.region, current_timestamp,
                         league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],
-                        league_data["flex_rank"], league_data["flex_lp"], league_data["flex_wins"], league_data["flex_losses"], league_data["flex_wr"],
+                        league_data["flex_rank"], league_data["flex_lp"], league_data["flex_wins"], league_data["flex_losses"], league_data["flex_wr"], self.icon_id, self.level,
                         self.puuid)
                     )
                 else:
                     print("Summoner data is up-to-date.")
                     
             else:
-                print("Inserting new summoner data into the database.")
                 cursor.execute(
-                    "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region, last_update, soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, flex_rank, flex_lp, flex_wins, flex_losses, flex_wr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (self.puuid, self.id, self.summoner_name, self.region, current_timestamp, league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],league_data["flex_rank"],league_data["flex_lp"],league_data["flex_wins"],league_data["flex_losses"],league_data["flex_wr"]),
+                    "INSERT INTO summoners (summoner_puuid, summoner_id, summoner_name, region, last_update, soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, flex_rank, flex_lp, flex_wins, flex_losses, flex_wr, profile_icon_id, summoner_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (self.puuid, self.id, self.summoner_name, self.region, current_timestamp, league_data["soloq_rank"], league_data["soloq_lp"], league_data["soloq_wins"], league_data["soloq_losses"], league_data["soloq_wr"],league_data["flex_rank"],league_data["flex_lp"],league_data["flex_wins"],league_data["flex_losses"],league_data["flex_wr"], self.icon_id, self.level),
                 )
             conn.commit()
         
@@ -87,7 +101,7 @@ class Summoner:
             cursor.execute(
                 """
                 SELECT soloq_rank, soloq_lp, soloq_wins, soloq_losses, soloq_wr, 
-                flex_rank, flex_lp, flex_wins, flex_losses, flex_wr
+                flex_rank, flex_lp, flex_wins, flex_losses, flex_wr, profile_icon_id, summoner_level
                 FROM summoners WHERE summoner_puuid = ?
                 """,
                 (self.puuid,)
@@ -105,7 +119,9 @@ class Summoner:
                     "flex_lp": result[6],
                     "flex_wins": result[7],
                     "flex_losses": result[8],
-                    "flex_wr": result[9]
+                    "flex_wr": result[9],
+                    "profile_icon_id": result[10],
+                    "summoner_level": result[11],
                 }
                 return summoner_data
 
@@ -138,6 +154,14 @@ class Summoner:
         return self.summoner_info()['puuid']
     
     
+    def summoner_icon_id(self) -> int:
+        return self.summoner_info()["profileIconId"]
+    
+    
+    def summoner_level(self) -> int:
+        return self.summoner_info()["summonerLevel"]
+    
+    
     def league_entries(self) -> Dict[str, Any]:
         endpoint = f"league/v4/entries/by-summoner/{self.id}"
         return self._get(endpoint)
@@ -157,6 +181,8 @@ class Summoner:
             "flex_wins": 0,
             "flex_losses": 0,
             "flex_wr": 0,
+            "profile_icon_id": self.summoner_data_from_db()["profile_icon_id"],
+            "summoner_level": self.summoner_data_from_db()["summoner_level"],
         }
         
     
@@ -336,6 +362,7 @@ class Summoner:
                     "participant10_team_id": row[49],
                     "game_mode": row[50],
                     "game_duration": row[51],
+                    "queue_id": row[52],
                 }
                 matches_data.append(match_data)
                 
@@ -361,9 +388,9 @@ class Summoner:
                         participant1_champion_name, participant2_champion_name, participant3_champion_name, participant4_champion_name, participant5_champion_name, 
                         participant6_champion_name, participant7_champion_name, participant8_champion_name, participant9_champion_name, participant10_champion_name, 
                         participant1_team_id, participant2_team_id, participant3_team_id, participant4_team_id, participant5_team_id, 
-                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id, game_mode, game_duration
+                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id, game_mode, game_duration, queue_id
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         summoner_data["summoner_puuid"],
@@ -417,6 +444,7 @@ class Summoner:
                         participants_data[9]["team_id"],
                         match_data["game_mode"],
                         match_data["game_duration"],
+                        match_data["queue_id"]
                     ),
             )
         conn.commit()
@@ -471,7 +499,8 @@ class Summoner:
                     }
             match_data = {
                 "game_mode": match_request["info"]["gameMode"],
-                "game_duration": match_request["info"]["gameDuration"]
+                "game_duration": match_request["info"]["gameDuration"],
+                "queue_id": match_request["info"]["queueId"]
             }
             all_match_data= {
                 "match_data": match_data,
@@ -492,8 +521,6 @@ class Summoner:
         return round(value / total_games, 1)
     
 
-
-# TODO: Necesita hacer dos solicitudes para devolver los top 5 champs. Comprobar por que
     def update_champion_stats(self):
         with self.db as conn:
             cursor = conn.cursor()
