@@ -1,6 +1,6 @@
 from typing import Dict, Any, Tuple
-from .season_constants import SEASON_START_TIMESTAMP
-from .request_utils import make_request
+from utils.season_constants import SEASON_START_TIMESTAMP
+from utils.request_utils import make_request
 import cachetools
 import sqlite3
 import time

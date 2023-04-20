@@ -1,16 +1,16 @@
 from flask import Flask, render_template, request
 import os
-from src.summoner import Summoner
+from models.summoner import Summoner
 from urllib.parse import quote
 from dotenv import load_dotenv
+import config
+
 
 load_dotenv()
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-SQLALCHEMY_DATABASE_URI = 'sqlite:///{}'.format(os.path.join(basedir, 'data.db'))
-
 app = Flask(__name__)
+app.config.from_object(config)
+
 
 def get_game_type(queue_id):
     game_types = {
@@ -31,7 +31,7 @@ def get_game_type(queue_id):
 def home():
     if request.method == 'POST':
         summoner_name = request.form['summoner_name']
-        api_key = os.getenv("API_KEY")
+        api_key = os.getenv("RIOT_API_KEY")
         region = "EUW1"
         
         summoner = Summoner(summoner_name, api_key, region)
@@ -116,5 +116,5 @@ def home():
         return render_template("index.html")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=config.DEBUG)
 

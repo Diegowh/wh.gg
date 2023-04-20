@@ -1,4 +1,4 @@
-from summoner import Summoner
+from ..models.summoner import Summoner
 import time
 
 
