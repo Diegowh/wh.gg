@@ -319,3 +319,23 @@
   }
 
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+  const searchButton = document.querySelector('.search-form button');
+  const searchForm = document.querySelector('.search-form');
+  const searchInput = document.querySelector('input[name="summoner_name"]');
+
+  searchButton.addEventListener('click', function (event) {
+    event.preventDefault();
+
+    // Comprueba si el campo de búsqueda está vacío
+    if (searchInput.value.trim() === '') {
+      alert('Please enter a summoner name');
+    } else {
+      const region = 'euw1'; // Cambiar esto según la región deseada
+      const summonerName = searchInput.value.trim();
+      const searchUrl = `/summoners/${region}/${summonerName}`;
+      window.location.href = searchUrl;
+    }
+  });
+});
