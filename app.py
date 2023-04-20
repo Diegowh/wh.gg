@@ -38,6 +38,7 @@ def home():
         summoner_data = summoner.league_data()
         recent_matches_data = summoner.recent_matches_data()
         top_champs_data = summoner.top_champions_data()
+        role_data = summoner.role_data()
 
 
         summoner_data = {
@@ -105,12 +106,14 @@ def home():
             }
             for match in recent_matches_data
         ]
+
         
         return render_template('index.html', 
                             summoner_name=summoner_name,
                             summoner_data=summoner_data,
                             champions_played=champions_played,
                             recent_matches=recent_matches,
+                            role_data=role_data,
                             )
     else:
         return render_template("index.html")

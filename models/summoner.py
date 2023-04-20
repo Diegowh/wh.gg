@@ -364,6 +364,7 @@ class Summoner:
                     "game_mode": row[50],
                     "game_duration": row[51],
                     "queue_id": row[52],
+                    "team_position": row[53],
                 }
                 matches_data.append(match_data)
                 
@@ -389,9 +390,9 @@ class Summoner:
                         participant1_champion_name, participant2_champion_name, participant3_champion_name, participant4_champion_name, participant5_champion_name, 
                         participant6_champion_name, participant7_champion_name, participant8_champion_name, participant9_champion_name, participant10_champion_name, 
                         participant1_team_id, participant2_team_id, participant3_team_id, participant4_team_id, participant5_team_id, 
-                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id, game_mode, game_duration, queue_id
+                        participant6_team_id, participant7_team_id, participant8_team_id, participant9_team_id, participant10_team_id, game_mode, game_duration, queue_id, team_position
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         summoner_data["summoner_puuid"],
@@ -445,7 +446,8 @@ class Summoner:
                         participants_data[9]["team_id"],
                         match_data["game_mode"],
                         match_data["game_duration"],
-                        match_data["queue_id"]
+                        match_data["queue_id"],
+                        summoner_data["team_position"]
                     ),
             )
         conn.commit()
@@ -496,7 +498,7 @@ class Summoner:
                         "item4": participant["item4"],
                         "item5": participant["item5"],
                         "item6": participant["item6"],
-                        
+                        "team_position": participant["teamPosition"],
                     }
             match_data = {
                 "game_mode": match_request["info"]["gameMode"],
@@ -578,7 +580,8 @@ class Summoner:
         with self.db as conn:
             cursor = conn.cursor()
 
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT champion_name, matches_played, wr, kda, kills, deaths, assists, cs 
                 FROM champion_stats
                 WHERE summoner_puuid = '{self.puuid}'
@@ -605,7 +608,33 @@ class Summoner:
             return top_champions
         
         
-# TODO Hay un error conocido que incluye los datos de todas las partidas jugadas en modo CLASSIC (normal, soloq, flex) en champions_data.
+    def role_data(self) -> dict:
+        with self.db as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute(f"""
+                SELECT team_position
+                FROM matches
+                WHERE summoner_puuid = '{self.puuid}'
+            """
+            )
+
+            role_data = cursor.fetchall()
+            role_counts = {
+                "TOP": 0, 
+                "JUNGLE": 0, 
+                "MIDDLE": 0, 
+                "BOTTOM": 0, 
+                "UTILITY": 0
+            }
+            for role in role_data:
+                role = role[0]
+                if role in role_counts:
+                    role_counts[role] += 1
+                
+            return role_counts
+
+
     
 # TODO: Code Smells and Improvements:
 

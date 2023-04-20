@@ -275,10 +275,23 @@
             <div class="card-body pb-2">
               <h5 class="card-title"> | Roles</h5>
 
-              <div id="trafficChart" style="min-height: 150px;" class="echart"></div>
-
+              <div style="display: none;">
+                <span id="top-count">{{ role_data['TOP'] }}</span>
+                <span id="jungle-count">{{ role_data['JUNGLE'] }}</span>
+                <span id="mid-count">{{ role_data['MIDDLE'] }}</span>
+                <span id="bottom-count">{{ role_data['BOTTOM'] }}</span>
+                <span id="support-count">{{ role_data['UTILITY'] }}</span>
+            </div>
+            <div id="trafficChart" style="min-height: 150px;" class="echart"></div>
               <script>
                 document.addEventListener("DOMContentLoaded", () => {
+                  let role_counts = {
+                      'Top': parseInt(document.getElementById("top-count").textContent, 10),
+                      'Jungle': parseInt(document.getElementById("jungle-count").textContent, 10),
+                      'Mid': parseInt(document.getElementById("mid-count").textContent, 10),
+                      'Bottom': parseInt(document.getElementById("bottom-count").textContent, 10),
+                      'Support': parseInt(document.getElementById("support-count").textContent, 10)
+                  };
                   echarts.init(document.querySelector("#trafficChart")).setOption({
                     tooltip: {
                       trigger: 'item'
@@ -313,23 +326,23 @@
                         show: false
                       },
                       data: [{
-                          value: 10,
+                          value: role_counts["Top"],
                           name: 'Top'
                         },
                         {
-                          value: 24,
+                          value: role_counts["Jungle"],
                           name: 'Jungle'
                         },
                         {
-                          value: 51,
+                          value: role_counts["Mid"],
                           name: 'Mid'
                         },
                         {
-                          value: 12,
+                          value: role_counts["Bottom"],
                           name: 'Bottom'
                         },
                         {
-                          value: 6,
+                          value: role_counts["Support"],
                           name: 'Support'
                         }
                       ]
