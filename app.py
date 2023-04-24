@@ -1,15 +1,23 @@
 from flask import Flask, render_template, request
 import os
-from models.summoner import Summoner
+from models.summoner_data import SummonerData
 from urllib.parse import quote
 from dotenv import load_dotenv
 import config
+from models.db_models import db
+from flask_migrate import Migrate
 
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(config)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+migrate = Migrate(app, db)
+
 
 
 def get_game_type(queue_id):
@@ -27,12 +35,13 @@ def get_game_type(queue_id):
     }
     return game_types.get(queue_id, "Unknown")
 
+
 @app.route('/summoners/<region>/<summoner_name>', methods=['GET'])
 def summoner_info(region, summoner_name):
     api_key = os.getenv("RIOT_API_KEY")
     
     
-    summoner = Summoner(summoner_name, api_key, region)
+    summoner = SummonerData(summoner_name, api_key, region)
     summoner_data = summoner.league_data()
     recent_matches_data = summoner.recent_matches_data()
     top_champs_data = summoner.top_champions_data()
@@ -113,9 +122,12 @@ def summoner_info(region, summoner_name):
                         role_data=role_data,
                         region=region
                         )
+    
+    
 @app.route('/', methods=['GET'])
 def home():
     return render_template("index.html")
+
 
 if __name__ == '__main__':
     app.run(debug=config.DEBUG)
