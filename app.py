@@ -6,34 +6,24 @@ from dotenv import load_dotenv
 import config
 from models.db_models import db
 from flask_migrate import Migrate
+from utils.utils import get_game_type
 
 
 load_dotenv()
 
-app = Flask(__name__)
-app.config.from_object(config)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(config)
+    app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
-migrate = Migrate(app, db)
+    db.init_app(app)
+    migrate = Migrate(app, db)
+    
+    return app
 
 
-
-def get_game_type(queue_id):
-    game_types = {
-        400: "Normal Draft",
-        420: "Ranked Solo",
-        430: "Normal Blind",
-        440: "Ranked Flex",
-        450: "ARAM",
-        700: "CLASH",
-        830: "Co-op vs AI",
-        840: "Co-op vs AI",
-        850: "Co-op vs AI",
-        900: "URF",
-    }
-    return game_types.get(queue_id, "Unknown")
+app = create_app()
 
 
 @app.route('/summoners/<region>/<summoner_name>', methods=['GET'])
