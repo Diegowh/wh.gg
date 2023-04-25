@@ -1,5 +1,6 @@
-from typing import Dict, Any
 import roman
+
+from typing import Dict, Any
 
 
 
@@ -7,7 +8,6 @@ class RankedData:
     def league_entries(self) -> Dict[str, Any]:
         endpoint = f"league/v4/entries/by-summoner/{self.id}"
         return self._get(endpoint)
-    
     
     def fetch_summoner_ranks(self)-> Dict[str, str]:
         '''Retorna el rank de soloq y flex en formato Dict'''
@@ -42,17 +42,13 @@ class RankedData:
                 ranks["flex_wins"] = entry['wins']
                 ranks["flex_losses"] = entry['losses']
                 ranks["flex_wr"] = win_rate
-
         return ranks
-    
     
     def soloq_rank(self) -> str:
         return self.fetch_summoner_ranks()['soloq_rank']
     
-    
     def flex_rank(self) -> str:
         return self.fetch_summoner_ranks()['flex_rank']
-    
     
     def league_data(self) -> dict:
         '''
@@ -70,7 +66,6 @@ class RankedData:
             self.save_or_update_summoner_to_db(data)
             
             return data
-    
     
     def total_ranked_games_played_per_queue(self) -> tuple:
         league_entries = self.league_entries()

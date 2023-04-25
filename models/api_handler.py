@@ -1,6 +1,7 @@
+from typing import Dict, Any
+
 from utils.request_utils import make_request
 from utils.season_constants import SEASON_START_TIMESTAMP
-from typing import Dict, Any
 
 
 
@@ -15,7 +16,6 @@ class APIHandler:
             return make_request(url, params)
         except Exception as e:
             raise Exception(f"Error fetching data from API: {e}")
-        
         
     def all_match_ids_this_season(self) -> list:
         '''
@@ -39,7 +39,6 @@ class APIHandler:
             match_ids += current_match_ids
             
         return match_ids
-    
     
     def _matches_data(self, match_ids: list = None) -> dict:    
         """

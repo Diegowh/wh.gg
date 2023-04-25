@@ -1,4 +1,4 @@
-from .db_models import db, SummonerModel, ChampionStatsModel, MatchModel
+from .db_models import db, ChampionStatsModel, MatchModel
 
 
 
@@ -18,16 +18,13 @@ class MatchStats:
 
         return recent_matches_data
     
-    
     def calculate_kda(self, kills: int, deaths: int, assists: int) -> float:
         kda = (kills + assists) / (deaths if deaths != 0 else 1)
         return round(kda, 2)
 
-
     def calculate_average(self, value: int, total_games: int) -> float:
         return round(value / total_games, 1)
     
-
     def update_champion_stats(self):
         # Crea una tabla temporal con los datos agregados de matches
         
@@ -73,7 +70,6 @@ class MatchStats:
         db.session.execute(insert_stat)
         db.session.commit()
         
-        
     def update_champion_stats(self):
         # Crea una tabla temporal con los datos agregados de matches
         
@@ -118,7 +114,6 @@ class MatchStats:
 
         db.session.execute(insert_stat)
         db.session.commit()
-        
         
     def top_champions_data(self, top=5):
         top_champions_query = db.session.query(
@@ -155,7 +150,6 @@ class MatchStats:
             top_champions.append(champion_dict)
 
         return top_champions
-        
         
     def role_data(self) -> dict:
         role_data_query = db.session.query(

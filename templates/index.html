@@ -65,7 +65,7 @@
     <ul class="sidebar-nav" id="sidebar-nav">
 
       <li class="nav-item">
-        <a class="nav-link " href="{{ url_for('summoner_info', region=region, summoner_name=summoner_name) }}">
+        <a class="nav-link" href="{{ url_for('summoner.summoner_info', region=region, summoner_name=summoner_name) }}">
           <i class="bi bi-house"></i>
           <span>Home</span>
         </a>
@@ -136,7 +136,7 @@
                       document.addEventListener('DOMContentLoaded', function () {
                         const updateButton = document.getElementById('update-button');
 
-                        const summonerInfoUrl = "{{ url_for('summoner_info', region=region, summoner_name=summoner_name) }}";
+                        const summonerInfoUrl = "{{ url_for('summoner.summoner_info', region=region, summoner_name=summoner_name) }}";
 
                         updateButton.addEventListener('click', function (event) {
                           event.preventDefault();

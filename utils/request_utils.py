@@ -15,6 +15,7 @@ def throttle():
         time.sleep(BURST_TIME - time_since_last_request)
     last_request_time = time.time()
 
+
 def make_request(url, params):
     throttle()
     try:

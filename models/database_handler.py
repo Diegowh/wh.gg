@@ -1,5 +1,6 @@
-from .db_models import db, SummonerModel, ChampionStatsModel, MatchModel
 import time
+
+from .db_models import db, SummonerModel, MatchModel
 
 
 
@@ -28,7 +29,6 @@ class DatabaseHandler:
                 "flex_losses": summoner_model.flex_losses,
                 "flex_wr": summoner_model.flex_wr,
             } if summoner_model else None
-        
         
     def save_or_update_summoner_to_db(self, league_data: dict) -> None:
         """Saves or updates summoner data to the database based on whether the summoner's data has been updated within the last update time threshold (1 hour) or not.
@@ -97,7 +97,6 @@ class DatabaseHandler:
 
             db.session.add(summoner_model)
             db.session.commit()
-            
             
     def _matches_data_from_db(self) -> list[dict]:
         last_match = MatchModel.query.filter_by(summoner_puuid=self.puuid).order_by(MatchModel.match_id.desc()).first()
@@ -178,7 +177,6 @@ class DatabaseHandler:
             matches_data.append(match_data)
             
         return matches_data
-    
     
     def save_matches_data_to_db(self, matches_data: dict) -> None:
         """Saves match data to the database.

@@ -5,18 +5,14 @@ class SummonerInfo:
             self._summoner_info = self._get(endpoint)
         return self._summoner_info
     
-    
     def summoner_id(self) -> str:
         return self.summoner_info()["id"]
-    
     
     def summoner_puuid(self) -> str:
         return self.summoner_info()['puuid']
     
-    
     def summoner_icon_id(self) -> int:
         return self.summoner_info()["profileIconId"]
-    
     
     def summoner_level(self) -> int:
         return self.summoner_info()["summonerLevel"]

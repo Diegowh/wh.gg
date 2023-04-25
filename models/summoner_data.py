@@ -1,9 +1,10 @@
 import sqlite3
-from .database_handler import DatabaseHandler
-from .summoner_info import SummonerInfo
+
 from .api_handler import APIHandler
-from .ranked_data import RankedData
+from .database_handler import DatabaseHandler
 from .match_stats import MatchStats
+from .ranked_data import RankedData
+from .summoner_info import SummonerInfo
 
 
 class SummonerData(SummonerInfo, DatabaseHandler, APIHandler, RankedData, MatchStats):
