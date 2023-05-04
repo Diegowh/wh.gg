@@ -1,5 +1,5 @@
 from .db_models import db, ChampionStatsModel, MatchModel
-
+from sqlalchemy import cast, Numeric, Float
 
 
 RECENT_MATCHES_LIMIT = 10
@@ -27,19 +27,19 @@ class MatchStats:
     
     def update_champion_stats(self):
         # Crea una tabla temporal con los datos agregados de matches
-        
+
         temp_stats = db.session.query(
             MatchModel.summoner_puuid,
             MatchModel.champion_name,
             db.func.count().label("matches_played"),
             db.func.sum(MatchModel.win).label("wins"),
             (db.func.count() - db.func.sum(MatchModel.win)).label("losses"),
-            (db.func.round((db.func.sum(MatchModel.win) * 100.0) / db.func.count())).label("wr"),
-            (db.func.round((db.func.sum(MatchModel.kills) + db.func.sum(MatchModel.assists)) / (db.func.sum(MatchModel.deaths) + 0.001), 2)).label("kda"),
-            (db.func.round(db.func.sum(MatchModel.kills) * 1.0 / db.func.count(), 1)).label("kills"),
-            (db.func.round(db.func.sum(MatchModel.deaths) * 1.0 / db.func.count(), 1)).label("deaths"),
-            (db.func.round(db.func.sum(MatchModel.assists) * 1.0 / db.func.count(), 1)).label("assists"),
-            (db.func.round(db.func.sum(MatchModel.cs) * 1.0 / db.func.count())).label("cs")
+            (db.func.round(cast(db.func.sum(MatchModel.win) * 100.0, Numeric) / db.func.count())).label("wr"),
+            (db.func.round(cast(db.func.sum(MatchModel.kills) + db.func.sum(MatchModel.assists), Numeric) / cast(db.func.sum(MatchModel.deaths) + 0.001, Numeric), 2)).label("kda"),
+            (db.func.round(cast(db.func.sum(MatchModel.kills) * 1.0, Numeric) / db.func.count(), 1)).label("kills"),
+            (db.func.round(cast(db.func.sum(MatchModel.deaths) * 1.0, Numeric) / db.func.count(), 1)).label("deaths"),
+            (db.func.round(cast(db.func.sum(MatchModel.assists) * 1.0, Numeric) / db.func.count(), 1)).label("assists"),
+            (db.func.round(cast(db.func.sum(MatchModel.cs) * 1.0, Numeric) / db.func.count())).label("cs")
         ).filter(MatchModel.queue_id.in_([420, 440])).group_by(MatchModel.summoner_puuid, MatchModel.champion_name).subquery()
 
         # Insertar los registros de la tabla temporal en champion_stats
@@ -70,50 +70,7 @@ class MatchStats:
         db.session.execute(insert_stat)
         db.session.commit()
         
-    def update_champion_stats(self):
-        # Crea una tabla temporal con los datos agregados de matches
-        
-        temp_stats = db.session.query(
-            MatchModel.summoner_puuid,
-            MatchModel.champion_name,
-            db.func.count().label("matches_played"),
-            db.func.sum(MatchModel.win).label("wins"),
-            (db.func.count() - db.func.sum(MatchModel.win)).label("losses"),
-            (db.func.round((db.func.sum(MatchModel.win) * 100.0) / db.func.count())).label("wr"),
-            (db.func.round((db.func.sum(MatchModel.kills) + db.func.sum(MatchModel.assists)) / (db.func.sum(MatchModel.deaths) + 0.001), 2)).label("kda"),
-            (db.func.round(db.func.sum(MatchModel.kills) * 1.0 / db.func.count(), 1)).label("kills"),
-            (db.func.round(db.func.sum(MatchModel.deaths) * 1.0 / db.func.count(), 1)).label("deaths"),
-            (db.func.round(db.func.sum(MatchModel.assists) * 1.0 / db.func.count(), 1)).label("assists"),
-            (db.func.round(db.func.sum(MatchModel.cs) * 1.0 / db.func.count())).label("cs")
-        ).filter(MatchModel.queue_id.in_([420, 440])).group_by(MatchModel.summoner_puuid, MatchModel.champion_name).subquery()
 
-        # Insertar los registros de la tabla temporal en champion_stats
-        insert_stat = ChampionStatsModel.__table__.insert().from_select(
-            [
-                ChampionStatsModel.summoner_puuid,
-                ChampionStatsModel.champion_name,
-                ChampionStatsModel.matches_played,
-                ChampionStatsModel.wins,
-                ChampionStatsModel.losses,
-                ChampionStatsModel.wr,
-                ChampionStatsModel.kda,
-                ChampionStatsModel.kills,
-                ChampionStatsModel.deaths,
-                ChampionStatsModel.assists,
-                ChampionStatsModel.cs,
-            ],
-            temp_stats.select().where(
-                db.not_(
-                    db.session.query(ChampionStatsModel).filter(
-                        ChampionStatsModel.summoner_puuid == temp_stats.c.summoner_puuid,
-                        ChampionStatsModel.champion_name == temp_stats.c.champion_name
-                    ).exists()
-                )
-            )
-        )
-
-        db.session.execute(insert_stat)
-        db.session.commit()
         
     def top_champions_data(self, top=5):
         top_champions_query = db.session.query(

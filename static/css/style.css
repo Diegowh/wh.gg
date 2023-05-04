@@ -38,6 +38,22 @@ h6 {
   font-family: Roboto, sans-serif;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100%;
+}
+
+.main {
+  flex: 1 0 auto;
+}
+
+
 /*--------------------------------------------------------------
 # Main
 --------------------------------------------------------------*/
@@ -1256,10 +1272,11 @@ h6 {
 # Footer
 --------------------------------------------------------------*/
 .footer {
-  padding: 20px 0;
-  font-size: 14px;
+  padding: 10px 0;
+  font-size: 10px;
   transition: all 0.3s;
   border-top: 1px solid #cddfff;
+  flex-shrink: 0;
 }
 
 .footer .copyright {
@@ -1270,7 +1287,7 @@ h6 {
 .footer .credits {
   padding-top: 5px;
   text-align: center;
-  font-size: 13px;
+  font-size: 10px;
   color: #012970;
 }
 

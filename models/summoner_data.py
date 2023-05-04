@@ -1,5 +1,3 @@
-import sqlite3
-
 from .api_handler import APIHandler
 from .database_handler import DatabaseHandler
 from .match_stats import MatchStats
@@ -16,8 +14,6 @@ class SummonerData(SummonerInfo, DatabaseHandler, APIHandler, RankedData, MatchS
         
         self._summoner_info = None
         self.id = self.summoner_id()
-        self.db = sqlite3.connect("data.db")
-        
         # self.cache = cachetools.TTLCache(maxsize=100, ttl=30 * 60)
         
         if self._summoner_data_from_db() is not None:

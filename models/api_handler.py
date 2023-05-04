@@ -72,7 +72,7 @@ class APIHandler:
                         "kills": participant["kills"],
                         "deaths": participant["deaths"],
                         "assists": participant["assists"],
-                        "win": participant["win"],
+                        "win": 1 if participant["win"] else 0,
                         "kda": self.calculate_kda(participant["kills"], participant["deaths"], participant["assists"]),
                         "cs": participant["totalMinionsKilled"] + participant["neutralMinionsKilled"],
                         "vision": participant["visionScore"],
