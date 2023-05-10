@@ -1,4 +1,4 @@
-# wh.gg - Estadísticas detalladas, perfiles de invocadores y tier list para League of Legends
+# wh.gg
 
 wh.gg es una aplicación web inspirada en [op.gg](https://www.op.gg/), [u.gg](https://u.gg/) y [porofessor.gg](https://porofessor.gg/), diseñada para buscar datos de invocadores de League of Legends utilizando la API de Riot Games y mostrar información relevante, como las úiltimas partidas jugadas, los datos de los campeones jugados por el invocador en toda la temporada, su rango en clasificatorias, etc.
 

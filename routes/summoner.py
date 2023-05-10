@@ -84,7 +84,7 @@ def summoner_info(region, summoner_name):
     ]
 
     
-    return render_template('index.html', 
+    return render_template('summoner_page.html', 
                         summoner_name=summoner_name,
                         summoner_data=summoner_data,
                         champions_played=champions_played,

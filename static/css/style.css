@@ -424,7 +424,7 @@ body {
   font-size: 26px;
   font-weight: 700;
   color: #012970;
-  font-family: "Nunito", sans-serif;
+  font-family: 'Righteous', cursive;
 }
 
 .header {
@@ -451,7 +451,7 @@ body {
 }
 
 @media (max-width: 1199px) {
-  .header .search-bar {
+  /* .header .search-bar {
     position: fixed;
     top: 0px;
     left: 0;
@@ -463,13 +463,13 @@ body {
     transition: 0.3s;
     max-width: 360px;
     margin: 0 auto;
-  }
+  } */
 
-  /* .header .search-bar-show {
+  .header .search-bar-show {
     top: 60px;
     visibility: visible;
     opacity: 1;
-  } */
+  }
 }
 
 .header .search-form {
@@ -1468,4 +1468,9 @@ body {
 .card-body .row {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
+}
+
+.row {
+  margin-right: 0px;
 }
